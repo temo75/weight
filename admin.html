@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="ka">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>TEMO WEIGHT — Admin</title>
+<style>
+:root{--blue:#08a8ff;--red:#ef4d5a;--green:#19b66b}
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f5fbff;color:#102033}
+.wrap{max-width:900px;margin:auto;padding:18px}
+header{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:18px}
+h1{margin:0;font-size:24px;color:#078ed8}.card{background:#fff;border-radius:18px;padding:18px;margin:12px 0;box-shadow:0 5px 25px #0b8ed21a}
+input,button{font:inherit}input{width:100%;padding:12px;border:1px solid #cfe2ee;border-radius:10px;margin:6px 0}
+button{border:0;border-radius:10px;padding:10px 13px;cursor:pointer;font-weight:700}
+.primary{background:var(--blue);color:#fff}.danger{background:#ffe8ea;color:#c62836}.muted{background:#eef4f7;color:#34495e}
+#loginBox{max-width:430px;margin:12vh auto}.msg{min-height:22px;margin:8px 0;color:var(--red)}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap}.toolbar input{flex:1;min-width:180px;margin:0}
+.user{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:14px 0;border-bottom:1px solid #e7eef3}
+.email{font-weight:700;color:#087dbb;cursor:pointer;background:none;padding:0;text-align:left}
+.meta{font-size:12px;color:#71808d;margin-top:4px}.actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.disabled{opacity:.55}.badge{display:inline-block;padding:4px 7px;border-radius:8px;background:#e7f8ee;color:#16804d;font-size:11px}.badge.off{background:#ffe8ea;color:#b72d39}
+dialog{border:0;border-radius:18px;padding:0;width:min(430px,calc(100% - 28px));box-shadow:0 15px 50px #001a2d40}dialog::backdrop{background:#001a2d80}.modal{padding:20px}.modal h2{margin-top:0}.row{display:flex;gap:8px}.row>*{flex:1}
+.hidden{display:none!important}
+@media(max-width:600px){.user{grid-template-columns:1fr}.actions{justify-content:flex-start}.actions button{flex:1}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div id="loginBox" class="card">
+<h1>TEMO WEIGHT — Admin</h1>
+<p>ადმინისტრატორის შესვლა</p>
+<input id="email" type="email" autocomplete="username" placeholder="Email">
+<input id="password" type="password" autocomplete="current-password" placeholder="პაროლი">
+<button id="login" class="primary" style="width:100%">შესვლა</button>
+<div id="loginMsg" class="msg"></div>
+</div>
+
+<main id="adminBox" class="hidden">
+<header>
+<div><h1>Admin Panel</h1><div id="adminEmail" class="meta"></div></div>
+<button id="logout" class="muted">🚪 გასვლა</button>
+</header>
+<section class="card">
+<div class="toolbar"><input id="search" placeholder="მოძებნე email..."><button id="refresh" class="primary">განახლება</button></div>
+<h2>მომხმარებლები: <span id="total">0</span></h2>
+<div id="users"></div>
+<div id="status" class="meta"></div>
+</section>
+</main>
+</div>
+
+<dialog id="passwordDialog">
+<form method="dialog" class="modal" id="passwordForm">
+<h2>ახალი პაროლი</h2>
+<div id="targetEmail" class="meta"></div>
+<input id="newPassword" type="password" minlength="6" autocomplete="new-password" placeholder="ახალი პაროლი">
+<input id="newPassword2" type="password" minlength="6" autocomplete="new-password" placeholder="გაიმეორე ახალი პაროლი">
+<div id="passwordMsg" class="msg"></div>
+<div class="row"><button value="cancel" class="muted">გაუქმება</button><button type="submit" class="primary">შეცვლა</button></div>
+</form>
+</dialog>
+
+<script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-functions-compat.js"></script>
+<script>
+const firebaseConfig={apiKey:"AIzaSyCOsRuJE3i5G1GWe99tPZSj5zOURwa4Kms",authDomain:"temo-50.firebaseapp.com",databaseURL:"https://temo-50-default-rtdb.europe-west1.firebasedatabase.app",projectId:"temo-50",storageBucket:"temo-50.firebasestorage.app",messagingSenderId:"147888227478",appId:"1:147888227478:web:0f7f0808d508d113116eb7"};
+firebase.initializeApp(firebaseConfig);
+const auth=firebase.auth(),functions=firebase.app().functions("europe-west1"),ADMIN_EMAIL="temo75elia@gmail.com";
+let users=[],selectedUid=null;
+const $=id=>document.getElementById(id);
+function msg(el,text,ok=false){el.textContent=text;el.style.color=ok?"#19b66b":"#ef4d5a"}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+async function establishAdmin(user){
+if(String(user?.email||"").toLowerCase()!==ADMIN_EMAIL)return false;
+try{await functions.httpsCallable("bootstrapAdmin")();await user.getIdToken(true)}catch(e){}
+const token=await user.getIdTokenResult(true);return token.claims?.admin===true;
+}
+async function loadUsers(){
+$("status").textContent="იტვირთება...";
+try{const r=await functions.httpsCallable("adminListUsers")();users=Array.isArray(r.data?.users)?r.data.users:[];render();$("status").textContent="მზადაა"}
+catch(e){$("status").textContent="შეცდომა: "+(e?.message||"ვერ ჩაიტვირთა")}}
+function render(){
+const q=$("search").value.trim().toLowerCase(),list=users.filter(u=>(u.email||"").toLowerCase().includes(q));
+$("total").textContent=users.length;
+$("users").innerHTML=list.map(u=>{
+const self=u.uid===auth.currentUser?.uid,off=!!u.disabled;
+return '<div class="user '+(off?"disabled":"")+'"><div><button class="email" data-action="password" data-uid="'+esc(u.uid)+'">'+esc(u.email||"(no email)")+'</button><div class="meta"><span class="badge '+(off?"off":"")+'">'+(off?"დაბლოკილი":"აქტიური")+'</span> · '+(u.emailVerified?"email დადასტურებულია":"email დაუდასტურებელია")+'</div></div><div class="actions"><button class="muted" '+(self?"disabled":"")+' data-action="toggle" data-uid="'+esc(u.uid)+'">'+(off?"🔓 განბლოკვა":"🔒 დაბლოკვა")+'</button><button class="danger" '+(self?"disabled":"")+' data-action="delete" data-uid="'+esc(u.uid)+'">🗑️ წაშლა</button></div></div>'
+}).join("")||'<div class="meta">მომხმარებელი ვერ მოიძებნა.</div>';
+}
+$("users").onclick=async e=>{
+const b=e.target.closest("button[data-action]");if(!b)return;
+const u=users.find(x=>x.uid===b.dataset.uid);if(!u)return;
+if(b.dataset.action==="password"){selectedUid=u.uid;$("targetEmail").textContent=u.email||"";$("newPassword").value="";$("newPassword2").value="";msg($("passwordMsg"),"");$("passwordDialog").showModal();return}
+if(b.dataset.action==="toggle"){
+if(!confirm((u.disabled?"განბლოკოს ":"დაბლოკოს ")+u.email+"?"))return;
+try{await functions.httpsCallable("adminSetDisabled")({uid:u.uid,disabled:!u.disabled});await loadUsers()}catch(err){alert(err?.message||"შეცდომა")}}
+if(b.dataset.action==="delete"){
+if(!confirm("ნამდვილად წავშალოთ "+u.email+"? ეს წაშლის ანგარიშსაც და მის მონაცემებსაც."))return;
+try{await functions.httpsCallable("adminDeleteUser")({uid:u.uid});await loadUsers()}catch(err){alert(err?.message||"შეცდომა")}}
+};
+$("passwordForm").onsubmit=async e=>{
+e.preventDefault();const p=$("newPassword").value,p2=$("newPassword2").value;
+if(p.length<6){msg($("passwordMsg"),"პაროლი მინიმუმ 6 სიმბოლო უნდა იყოს");return}
+if(p!==p2){msg($("passwordMsg"),"პაროლები არ ემთხვევა");return}
+try{await functions.httpsCallable("adminSetPassword")({uid:selectedUid,password:p});msg($("passwordMsg"),"პაროლი შეიცვალა",true);setTimeout(()=>$("passwordDialog").close(),500)}
+catch(err){msg($("passwordMsg"),err?.message||"შეცდომა")}};
+$("search").oninput=render;$("refresh").onclick=loadUsers;$("logout").onclick=()=>auth.signOut();
+$("login").onclick=async()=>{msg($("loginMsg"),"");try{await auth.signInWithEmailAndPassword($("email").value.trim(),$("password").value)}catch(e){msg($("loginMsg"),"შესვლა ვერ მოხერხდა")}};
+auth.onAuthStateChanged(async user=>{
+$("loginBox").classList.toggle("hidden",!!user);$("adminBox").classList.add("hidden");if(!user)return;
+if(String(user.email||"").toLowerCase()!==ADMIN_EMAIL){msg($("loginMsg"),"ამ ანგარიშს Admin-ზე წვდომა არ აქვს");await auth.signOut();return}
+const ok=await establishAdmin(user);
+if(!ok){msg($("loginMsg"),"Admin backend ჯერ არ არის გააქტიურებული");await auth.signOut();return}
+$("adminEmail").textContent=user.email||"";$("adminBox").classList.remove("hidden");await loadUsers();
+});
+</script>
+</body>
+</html>
