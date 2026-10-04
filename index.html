@@ -478,9 +478,27 @@ function parseWeightOverlay(json,canvas){
     return {w,score:size*(0.65+0.35*centrality)};
   }).sort((a,b)=>b.score-a.score);
 
+  // OCR.space often recognizes the LCD one digit at a time.
+  // Build the complete LCD reading from all nearby numeric/punctuation words
+  // before accepting a single digit. Example: "1" "4" "." "9" "0" -> "14.90".
+  const all=words
+    .filter(w=>/[0-9]/.test(w.text)||/^[.,]$/.test(w.text))
+    .sort((a,b)=>a.top-b.top||a.left-b.left);
+  for(let i=0;i<all.length;i++){
+    const base=all[i];
+    const line=all.filter(w=>
+      Math.abs(w.top-base.top)<=Math.max(10,Math.max(w.height,base.height)*0.8)
+    ).sort((a,b)=>a.left-b.left);
+    if(line.length>=2){
+      const joined=line.map(w=>w.text).join("");
+      const found=parseWeightOCR(joined);
+      if(found && found.number>=5 && found.number<=300)return found;
+    }
+  }
+
   for(const item of ranked.slice(0,8)){
     const found=parseWeightOCR(item.w.text);
-    if(found)return found;
+    if(found && found.number>=5)return found;
   }
 
   // If OCR split the LCD number into adjacent words, combine the largest
