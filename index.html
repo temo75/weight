@@ -501,10 +501,26 @@ function parseWeightOverlay(json,canvas){
   return null;
 }
 
-async function recognizeWeightOCR(canvas){
+async function recognizeWeightOCR(canvas,focusLCD=false){
   const key=getOCRSpaceKey();
   if(!key)throw new Error("OCR.space API Key არ არის შეყვანილი");
   $("scanStatus").textContent="🔎 OCR.space კითხულობს რიცხვს...";
+
+  // For a full uploaded photo, send OCR only the same LCD window used by
+  // the camera frame. This prevents printed scale labels and other digits
+  // from competing with the large LCD number.
+  let ocrCanvas=canvas;
+  if(focusLCD){
+    const x=Math.round(canvas.width*.08);
+    const y=Math.round(canvas.height*.31);
+    const w=Math.round(canvas.width*.84);
+    const h=Math.round(canvas.height*.38);
+    const crop=document.createElement("canvas");
+    crop.width=1400;
+    crop.height=Math.max(350,Math.round(1400*h/w));
+    crop.getContext("2d").drawImage(canvas,x,y,w,h,0,0,crop.width,crop.height);
+    ocrCanvas=crop;
+  }
 
   // Run ordinary OCR on two image variants. LCD 7 can easily be mistaken
   // for 1 when the segments are faint, so the second pass uses a clean
@@ -550,7 +566,7 @@ async function recognizeWeightOCR(canvas){
     }finally{clearTimeout(timer);}
   };
 
-  const variants=[makeVariant(canvas,"original"),makeVariant(canvas,"contrast")];
+  const variants=[makeVariant(ocrCanvas,"original"),makeVariant(ocrCanvas,"contrast")];
   const results=[];
   // Engine 2 first because it is our current LCD pass; Engine 1 provides
   // an independent ordinary-OCR reading when 7 and 1 look similar.
@@ -617,7 +633,7 @@ async function scanScalePhoto(file){
     const cv=document.createElement("canvas");
     cv.width=img.naturalWidth;cv.height=img.naturalHeight;
     cv.getContext("2d").drawImage(img,0,0);
-    const found=await recognizeWeightOCR(cv);
+    const found=await recognizeWeightOCR(cv,true);
     if(!found) throw new Error("OCR-მ რიცხვი ვერ ამოიცნო");
     $("weightInput").value=found.raw||found.number;
     $("recognizedWeight").textContent=(found.raw||found.number)+" კგ";
