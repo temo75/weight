@@ -506,47 +506,86 @@ async function recognizeWeightOCR(canvas){
   if(!key)throw new Error("OCR.space API Key არ არის შეყვანილი");
   $("scanStatus").textContent="🔎 OCR.space კითხულობს რიცხვს...";
 
-  const form=new FormData();
-  form.append("base64Image",canvas.toDataURL("image/jpeg",.95));
-  form.append("language","auto");
-  form.append("OCREngine","2");
-  form.append("isOverlayRequired","true");
-  form.append("detectOrientation","true");
-  form.append("scale","true");
+  // Run ordinary OCR on two image variants. LCD 7 can easily be mistaken
+  // for 1 when the segments are faint, so the second pass uses a clean
+  // high-contrast grayscale image. No custom 7-segment recognition is used.
+  const makeVariant=(source,mode)=>{
+    const out=document.createElement("canvas");
+    out.width=source.width;out.height=source.height;
+    const ctx=out.getContext("2d");
+    if(mode==="original"){
+      ctx.drawImage(source,0,0);
+      return out;
+    }
+    ctx.drawImage(source,0,0);
+    const im=ctx.getImageData(0,0,out.width,out.height);
+    const d=im.data;
+    for(let i=0;i<d.length;i+=4){
+      const y=.299*d[i]+.587*d[i+1]+.114*d[i+2];
+      const v=Math.max(0,Math.min(255,(y-145)*2.35+128));
+      d[i]=d[i+1]=d[i+2]=v;
+    }
+    ctx.putImageData(im,0,0);
+    return out;
+  };
 
-  const controller=new AbortController();
-  const timer=setTimeout(()=>controller.abort(),20000);
+  const callOCR=async(source,engine)=>{
+    const form=new FormData();
+    form.append("base64Image",source.toDataURL("image/jpeg",.95));
+    form.append("language","eng");
+    form.append("OCREngine",String(engine));
+    form.append("isOverlayRequired","true");
+    form.append("detectOrientation","true");
+    form.append("scale","true");
+    const controller=new AbortController();
+    const timer=setTimeout(()=>controller.abort(),20000);
+    try{
+      const res=await fetch("https://api.ocr.space/parse/image",{
+        method:"POST",headers:{apikey:key},body:form,signal:controller.signal
+      });
+      if(!res.ok)throw new Error("OCR HTTP "+res.status);
+      const json=await res.json();
+      if(json.IsErroredOnProcessing)return null;
+      return json;
+    }finally{clearTimeout(timer);}
+  };
 
-  try{
-    const res=await fetch("https://api.ocr.space/parse/image",{
-      method:"POST",
-      headers:{apikey:key},
-      body:form,
-      signal:controller.signal
-    });
-    if(!res.ok)throw new Error("OCR HTTP "+res.status);
-
-    const json=await res.json();
-    if(json.IsErroredOnProcessing)
-      throw new Error(String(json.ErrorMessage||"OCR processing failed"));
-
-    // First use OCR-space's bounding boxes so small printed text elsewhere
-    // on the scale cannot beat the large LCD digits.
-    const overlayFound=parseWeightOverlay(json,canvas);
-    if(overlayFound)return overlayFound;
-
-    // Fallback to the full OCR text if overlay data is unavailable.
-    const text=(json.ParsedResults||[])
-      .map(x=>String(x.ParsedText||""))
-      .join("\n");
-    const found=parseWeightOCR(text);
-    if(!found)throw new Error("OCR-მ რიცხვი ვერ ამოიცნო");
-    return found;
-  }finally{
-    clearTimeout(timer);
+  const variants=[makeVariant(canvas,"original"),makeVariant(canvas,"contrast")];
+  const results=[];
+  // Engine 2 first because it is our current LCD pass; Engine 1 provides
+  // an independent ordinary-OCR reading when 7 and 1 look similar.
+  for(const engine of [2,1]){
+    for(const variant of variants){
+      try{
+        const json=await callOCR(variant,engine);
+        if(!json)continue;
+        const found=parseWeightOverlay(json,canvas);
+        if(found)results.push(found);
+        else{
+          const text=(json.ParsedResults||[]).map(x=>String(x.ParsedText||"")).join("\n");
+          const f=parseWeightOCR(text);
+          if(f)results.push(f);
+        }
+      }catch(_){}
+    }
   }
-}
 
+  if(!results.length)throw new Error("OCR-მ რიცხვი ვერ ამოიცნო");
+
+  // Prefer agreement between independent OCR passes. If they disagree,
+  // prefer the result seen by Engine 1 on the clean contrast pass, which
+  // is useful for LCD 7-vs-1 ambiguity.
+  const counts=new Map();
+  for(const r of results){
+    const k=String(r.raw);
+    counts.set(k,(counts.get(k)||0)+1);
+  }
+  results.sort((a,b)=>{
+    const ca=counts.get(String(a.raw))||0,cb=counts.get(String(b.raw))||0;
+    return (cb-ca)||(b.priority-a.priority);
+  });
+  return results[0];
+}
 function cropCameraFrame(video){
  const vw=video.videoWidth,vh=video.videoHeight,stage=video.parentElement,sw=stage.clientWidth,sh=stage.clientHeight;
  const scale=Math.max(sw/vw,sh/vh),dw=vw*scale,dh=vh*scale,ox=(dw-sw)/2,oy=(dh-sh)/2;
