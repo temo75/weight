@@ -122,61 +122,6 @@
 
 <script>
 
-/* TEMO LCD OCR v2 — local validated 7-segment reader */
-const TEMO_LCD_TEMPLATES={"8":["AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAH//wAP//+AD///gA8AA4APAAOADwADgA8AA4APAAOADwADgA8AB4APAAOADwADgA8AB4APAAeADwADgA4AA4AOAAOAD///gAf//wAH//8AD///gA4AA4AOAAOADgAHgA8AB4APAAeADwAHgA4AB4AOAAeADgAHgA4AB4AOAAeADgAHgA4AB4AOAAeAD///gA///4AB//8AAf/8AAH//AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==","AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD/+AAA//gAAP/+AAcD/wAHA/8ABwAHwAcAB8AHAAfABwAHwB8AB8AfAAfAHwAHwB8AB8AfAAfAHwAHwB8AB8AfAAfAHwAHwB8AB8AfAAfAH4AHAAf//wAH//8AB///AAf//wAH//8AHwAHAB8ABwAfAAcAHwAHAB8ABwAfAAcAHwAHAB8ABwAfAAcAHwAHAB8ABwAfAAcAHwAHAB8ABwAfAAcABwAHAAf//wAH//8AA//4AAD/+AAA//gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==","AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAcAB8AHAAfABwAHwAcAB8AHAAfAB///wAf//wAH//8AB///wB8AB8AfAAfAHwAHwB8AB8AfAAfAHwAHwB8AB8AfAAfAHwAHwB8AB8AfAAfAHwAHwB8AB8AfAAfAHwAHwB8AB8AfAAfAHw5HwAP//wAD//8AA//+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==","AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA//gAAP/4AAD//wAHn/8AB5//AAcAAcAfAAHAHwABwB8AAcAfAAfAHwAHwB8AB8AfAAfAHwAHwB8AB8AfAAfAHwAHwB8AB8AfAAfAHwAHwAf//8AH//8AHB//ABwf/wAfAAfAHwAHwB8AB8AfAAfAHAAHwBwAB8AfAAfAHAAHwBwAB8AcAAfAHAAHABwABwAcAAcAHAAHABwABwAH//8AA//4AAP/+AAAAHAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="],"7":["AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA//+AAP//gAD//4AAAAD4AAAA+AAAAHgAAAB4AAAAeAAAAHgAAAD4AAAA+AAAAPgAAAB4AAAAeAAAAPgAAAD4AAAA+AAAAPgAAAD4AAAAeAAAAHgAAAAAAAAAAAAAAAAAAAD4AAAA+AAAAPgAAAD4AAAA+AAAAPgAAAD4AAAA+AAAAPgAAAD4AAAA+AAAAPgAAAD4AAAA+AAAAPgAAAD4AAAA+AAAAPgAAAD4AAAA+AAAAPgAAABgAAAAYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==","AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYAAAAGAAAAAeAAAAHgAAAB4AAAAeAAAAfgAAAH4AAAB+AAAAfgAAAH4AAAB+AAAAfgAAAH4AAAB+AAAAfgAAAH4AAAB+AAAAfgAAAH4AAAB+AAAAfgAAAH4AAAB+AAAAfgAAAH4AAAAAAAAAAAAAAAAAAAB+AAAAfgAAAH4AAAB+AAAAfgAAAH4AAAB+AAAAfgAAAH4AAAB+AAAAfgAAAH4AAAB+AAAAfgAAAH4AAAB+AAAAfgAAAH4AAAB+AAAAfgAAAH4AAAB+AAAAeAAAAHgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==","AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAf/+AAH//gAB//+AAf//gAAAB4AAAAeAAAAHgAAAB4AAAAeAAAAHgAAAB4AAAAeAAAAPgAAAD4AAAA+AAAAPgAAAD4AAAA+AAAAPgAAAB4AAAAeAAAAGAAAABgAAAAAAAAAAAAAAB4AAAA+AAAAPgAAAD4AAAA+AAAAPgAAAD4AAAA+AAAAPgAAAD4AAAA4AAAAOAAAADgAAAA4AAAAPgAAAD4AAAA4AAAAOAAAADgAAAAgAAAAIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="],"0":["AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD/8AAA//AAAP/4AAf//gAH//4ABwAHAB8AB8AfAAfAHwAHAB8ABwAfAAcAHwAHwB8AB8AfAAfAHwAHwB8ABwAfAAcAHwAHAAQAAQAEAAEAAAAAAAAAAAAAAAAAHwAHAB8ABwAfAAcAHwAPAB8ADwAfAA8AHwAPAB8ADwAfAA8AHwAPAB8ADwAfAA8AHwAPAB8ADwAfAA8AHAAPAB8QDwAfEA8AB//+AAP/+AAD//gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==","AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA8AA4APAAOADwADgA8AA4AOAAOADgADgAAAAAAAAAAAAAAAAA4AA4AOAAOADwADgA8AA4APAAOADwADgA8AA4APAAOADwADgA8AA4APAAOADwADgA8AA4APAAOADwADgA8AA4AOAAOADgADgA4AA4AP//+AAf/8AAH//AAB//wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==","AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB/wAAAf/4AAH/+AAH//gABgAHAAYABwAGAAcABgAHAB4AB8AeAAfAHgAHwB4ADwAeAA8AHgAPAB4ADwAeAA8AHgAPAB4ADwAeAA8AHgAPAB4ADwAAAAcAAAAAAAAAAAAcAAAAHgAPAB4ADwAeAA8AHgAPAB4ADwAeAA8AHgAPAB4ADwAeAA8AHgAPABwADwAcAA8AHAAPABwADwAH/44AB/+OAAf/8AAAf/AAAH/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="],"1":["AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA/AAAAPwAAAD8AAAA/4AAAP+AAAD/gAAA/4AAAP+AAAD/gAAA/4AAAP+AAAD/gAAA/4AAAP+AAAD/gAAA/4AAAP+AAAD/gAAA/4AAAP+AAAD/gAAA/4AAAP+AAAD/gAAA/4AAAP+AAAD/gAAA/4AAAP+AAAD/gAAA/4AAAP+AAAAcAAAAHAAAABwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==","AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPwAAAD8AAAA/AAAAPwAAAD8AAAA/AAAAPwAAAD8AAAA/AAAAPwAAAD8AAAA/AAAAPwAAAD8AAAA/AAAAPwAAAD8AAAAPAAAADwAAAAAAAAAAAAAAAAAAAAAAAAA/AAAAPwAAAD8AAAA/AAAAPwAAAD8AAAA/AAAAPwAAAD8AAAA/AAAAPwAAAD8AAAA/AAAAPwAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAA8AAAAPAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==","AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB+AAAAfgAAAH4AAAB+AAAAfgAAAH4AAAB+AAAAfgAAAH4AAAB+AAAAfgAAAH4AAAB+AAAAfgAAAH4AAAB+AAAAfgAAAH4AAAB+AAAAfgAAAH4AAAAAAAAAAAAAAAAAAAAAAAAAfgAAAf4AAAH+AAAB+AAAAfgAAAH4AAAB+AAAAfgAAAH4AAAB+AAAAfgAAAH4AAAB+AAAAfgAAAH4AAAB+AAAAfgAAAH4AAAB+AAAAfh4AAH4eAAB4fgAAeH4AAAB+AAAAfgAAAH4AAAB+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="],"2":["AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAf//4AH//+AB///gA8AxAAPAAAADwAAAA8AAAAPAAAADwAAAA8AAAAPAAAADwAAAA8AAAAPAAAADwAAAA8AAAAPAAAADwAAAA8AAAAH//wAAf/8AAH//AAABNgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="],"4":["AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD///AA///wAP//8AAAAPgAAAD4AAAA+AAAAPgAAAD4AAAA+AAAAPgAAAD4AAAA+AAAAPgAAAD4AAAA+AAAAPgAAAD4AAAA+AAAADgAAAAwAAAAMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="],"5":["AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD///AA///4AP//+AAAxjgAAMY4AAAAOAAAADgAAAA4AAAAOAAAADgAAAA4AAAAOAAAADgAAAA4AAAAOAAAADgAAAA4AAAAOAAAADgAAAA4AAAAOAAAADgAf//4AH//+AB///AAf//wAAf/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==","AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAf//AAf//wAH//8ADwAgAA8AAAAPAAAADwAAAA8AAAAPAAAADwAAAA8AAAAPAAAADwAAAA8AAAAPAAAADwAAAA8AAAAOAAAAD//8AA///AAP//8AB///AAf//wAAAAeAAAAHgAAAB4AAAAeAAAAHgAAAB4AAAAeAAAAHgAAAB4AAAAeAAAAHgAAAB4AAAAeAAAAHgAAAB4AAAAeAAAAHgAAAB4AAAAeAB///gAf//AAH//wAAAP4AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="],"6":["AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB+AAAAfgAAAH4AAAB+AAAAfgAAAH4AAAH//+AAf//wAH//8AB///AAcAB8AHAAfABwAHwAcAB8AHAAfABwAHwAcAB8AHAAfABwAHwAcAB8AHAAfABwAHwAcAB8AHAAfABwABwAP//wAD//8AAP/+AAB/+AAAf/gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="]};
-const TEMO_LCD_T={};
-function temoLCDDecode(b){const raw=atob(b),a=new Uint8Array(2048);for(let i=0;i<2048;i++)a[i]=(raw.charCodeAt(i>>3)&(1<<(7-(i&7))))?1:0;return a}
-for(const ch in TEMO_LCD_TEMPLATES)TEMO_LCD_T[ch]=TEMO_LCD_TEMPLATES[ch].map(temoLCDDecode);
-function temoLCDMask(canvas,threshold=25){
- const ctx=canvas.getContext("2d",{willReadFrequently:true}),w=canvas.width,h=Math.min(canvas.height,100),im=ctx.getImageData(0,0,w,h).data,g=new Uint8Array(w*h);
- for(let y=0;y<h;y++)for(let x=0;x<w;x++){const i=(y*w+x)*4;g[y*w+x]=Math.round(.299*im[i]+.587*im[i+1]+.114*im[i+2])}
- const r=15,iw=w+1,ii=new Float64Array((h+1)*iw);
- for(let y=0;y<h;y++){let row=0;for(let x=0;x<w;x++){row+=g[y*w+x];ii[(y+1)*iw+x+1]=ii[y*iw+x+1]+row}}
- const out=new Uint8Array(w*h);
- for(let y=0;y<h;y++)for(let x=0;x<w;x++){const x1=Math.max(0,x-r),x2=Math.min(w-1,x+r),y1=Math.max(0,y-r),y2=Math.min(h-1,y+r),sum=ii[(y2+1)*iw+x2+1]-ii[y1*iw+x2+1]-ii[(y2+1)*iw+x1]+ii[y1*iw+x1],mean=sum/((x2-x1+1)*(y2-y1+1));out[y*w+x]=(g[y*w+x]-mean)>threshold?1:0}
- return {m:out,w,h};
-}
-function temoLCDGlyph(bw,w,a,b,y1,y2){
- const pad=2,gw=b-a,gh=y2-y1,tmpW=gw+4,tmpH=gh+4,tmp=new Uint8Array(tmpW*tmpH);
- for(let y=0;y<gh;y++)for(let x=0;x<gw;x++)tmp[(y+pad)*tmpW+x+pad]=bw[(y1+y)*w+a+x];
- const scale=Math.min(60/tmpH,28/tmpW),nw=Math.max(1,Math.round(tmpW*scale)),nh=Math.max(1,Math.round(tmpH*scale)),out=new Uint8Array(2048);
- for(let y=0;y<nh;y++)for(let x=0;x<nw;x++){const sx=Math.min(tmpW-1,Math.floor(x/scale)),sy=Math.min(tmpH-1,Math.floor(y/scale));out[(Math.floor((64-nh)/2)+y)*32+Math.floor((32-nw)/2)+x]=tmp[sy*tmpW+sx]}
- return out;
-}
-function temoLCDDist(a,b){let inter=0,union=0,xor=0;for(let i=0;i<a.length;i++){if(a[i]!==b[i])xor++;if(a[i]||b[i]){union++;if(a[i]&&b[i])inter++}}return Math.min(xor/a.length,1-inter/Math.max(1,union))}
-function temoLCDClassify(g){let best={ch:"?",d:1};for(const ch in TEMO_LCD_T)for(const t of TEMO_LCD_T[ch]){const d=temoLCDDist(g,t);if(d<best.d)best={ch,d}}return best}
-function temoLCDRead(canvas){
- const q=temoLCDMask(canvas,25),{m,w,h}=q,col=new Int16Array(w);
- for(let x=0;x<w;x++)for(let y=0;y<h;y++)col[x]+=m[y*w+x];
- const groups=[];let on=false,s=0;
- for(let x=0;x<w;x++){if(col[x]>=2&&!on){s=x;on=true}if(on&&(col[x]<2||x===w-1)){const e=col[x]<2?x:x+1;if(e-s>=2)groups.push([s,e]);on=false}}
- let best=null;
- for(const n of [3,4]){
-  const lo=n===3?45:60,hi=n===3?60:82;
-  for(let i=0;i<groups.length;i++)for(let j=i+2;j<Math.min(groups.length,i+6);j++){
-   const x1=groups[i][0],x2=groups[j][1],span=x2-x1;if(span<lo||span>hi)continue;
-   let ok=true;for(let k=i;k<=j;k++)if(groups[k][1]-groups[k][0]>25)ok=false;if(!ok)continue;
-   const row=new Int16Array(100);for(let y=0;y<h;y++)for(let x=x1;x<x2;x++)row[y]+=m[y*w+x];
-   for(let y1=0;y1<65;y1++)if(row[y1]>=2){let y2=y1;while(y2<100&&row[y2]>=2)y2++;if(y2-y1<10)continue;let pix=0;for(let y=y1;y<y2;y++)for(let x=x1;x<x2;x++)pix+=m[y*w+x];const score=pix/(span*(y2-y1))+(n===4?.025:0);if(!best||score>best.score)best={score,n,x1,x2,y1,y2}}
-  }
- }
- if(!best)return null;
- const gs=[];let on2=false,s2=0;
- for(let x=best.x1;x<best.x2;x++){let v=0;for(let y=best.y1;y<best.y2;y++)v+=m[y*w+x];if(v>=2&&!on2){s2=x;on2=true}if(on2&&(v<2||x===best.x2-1)){const e=v<2?x:x+1;if(e-s2>=2)gs.push([s2,e]);on2=false}}
- const chars=gs.map(g=>temoLCDClassify(temoLCDGlyph(m,w,g[0],g[1],best.y1,best.y2)));
- if(chars.length<3||chars.length>4)return null;
- const raw=chars.map(x=>x.ch).join("");if(!/^\d{3,4}$/.test(raw))return null;
- const value=raw.slice(0,2)+"."+raw.slice(2),num=Number(value);
- if(!Number.isFinite(num)||num<1||num>300)return null;
- const confidence=chars.reduce((s,x)=>s+(1-x.d),0)/chars.length;
- return {raw:value,number:num,priority:130,confidence};
-}
-
-
-const KEY="temo_weight_v2",SET="temo_weight_settings_v1";
-let recognizedScanWeight=null;
-let records=JSON.parse(localStorage.getItem(KEY)||localStorage.getItem("temo_weight_v1")||"[]").filter(x=>x&&x.date&&Number(x.weight)>0).sort((a,b)=>a.date.localeCompare(b.date));
-let settings=JSON.parse(localStorage.getItem(SET)||"{}"),range="all";
 const $=id=>document.getElementById(id);
 const today=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
 const dateText=s=>new Date(s+"T12:00:00").toLocaleDateString("ka-GE",{day:"2-digit",month:"long",year:"numeric"});
@@ -554,51 +499,6 @@ function parseWeightOverlay(json,canvas){
 }
 
 async function recognizeWeightOCR(canvas,focusLCD=false){
-  // Local validated LCD reader first; OCR.space remains fallback.
-  try{
-    const lcdSource = focusLCD ? (()=>{const x=Math.round(canvas.width*.05),y=Math.round(canvas.height*.15),w=Math.round(canvas.width*.90),h=Math.round(canvas.height*.70),z=document.createElement("canvas");z.width=1600;z.height=Math.max(500,Math.round(1600*h/w));const zc=z.getContext("2d");zc.fillStyle="#fff";zc.fillRect(0,0,z.width,z.height);zc.drawImage(canvas,x,y,w,h,0,0,z.width,z.height);return z})() : canvas;
-    const localCandidates=[];
-    for(const sc of [lcdSource]){
-      const f=temoLCDRead(sc);
-      if(f)localCandidates.push(f);
-    }
-    if(localCandidates.length){
-      localCandidates.sort((a,b)=>(b.confidence-a.confidence)||(b.raw.length-a.raw.length));
-      return localCandidates[0];
-    }
-  }catch(e){console.warn("TEMO LCD OCR:",e)}
-
-  const key=getOCRSpaceKey();
-  if(!key)throw new Error("OCR.space API Key არ არის შეყვანილი");
-
-  // First try the dedicated 7-segment reader. This is especially important
-  // for close-up LCD photos where generic OCR may return only the first digit.
-  try{
-    const directBoxes=[
-      [.08,.22,.84,.56],
-      [.02,.10,.96,.72],
-      [.12,.05,.76,.88]
-    ];
-    const direct=[];
-    for(const box of directBoxes){
-      const roi=sevenMakeROI(canvas,box,1200,600);
-      const found=sevenTryROI(roi);
-      if(found && found.raw && String(found.raw).length>=2){
-        const raw=String(found.raw);
-        let value=raw;
-        if(/^\d{4}$/.test(raw)) value=raw.slice(0,2)+"."+raw.slice(2);
-        else if(/^\d{3}$/.test(raw)) value=raw.slice(0,2)+"."+raw.slice(2);
-        const n=Number(value);
-        if(Number.isFinite(n)&&n>0&&n<=300){
-          direct.push({raw:value,number:n,priority:130});
-        }
-      }
-    }
-    if(direct.length){
-      direct.sort((a,b)=>String(b.raw).length-String(a.raw).length);
-      return direct[0];
-    }
-  }catch(_){}
   $("scanStatus").textContent="🔎 OCR.space კითხულობს LCD-ს...";
 
   // Do not use the camera-frame coordinates on a saved/uploaded photo.
@@ -817,7 +717,14 @@ function closeCamera(){
   $("cameraModal").style.display="none";
 }
 
-$("cameraBtn").onclick=openCamera;
+$("cameraBtn").onclick=()=>{
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){
+    $("scanStatus").textContent="📷 კამერის ფანჯარა ხელმისაწვდომი არ არის — ფოტო რეჟიმს ვხსნი...";
+    $("scalePhoto").click();
+    return;
+  }
+  openCamera();
+};
 $("closeCameraBtn").onclick=closeCamera;
 
 $("zoomControl").oninput=async e=>{
