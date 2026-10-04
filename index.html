@@ -175,6 +175,9 @@ dataTrigger.onclick=()=>setDataDrawer(true);
 dataTrigger.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();setDataDrawer(true)}};
 dataDrawerClose.onclick=()=>setDataDrawer(false);
 dataDrawerBackdrop.onclick=()=>setDataDrawer(false);
+let dataTouchX=0,dataTouchY=0;
+dataDrawer.addEventListener("touchstart",e=>{if(e.touches.length===1){dataTouchX=e.touches[0].clientX;dataTouchY=e.touches[0].clientY}},{passive:true});
+dataDrawer.addEventListener("touchend",e=>{if(!dataTouchX)return;const dx=e.changedTouches[0].clientX-dataTouchX,dy=e.changedTouches[0].clientY-dataTouchY;dataTouchX=0;dataTouchY=0;if(dx<-55&&Math.abs(dx)>Math.abs(dy)*1.2)setDataDrawer(false)},{passive:true});
 $("saveBtn").onclick=()=>{
  const raw=String($("weightInput").value||"").trim(),w=Number(raw.replace(",","."));if(!/^\d{1,3}(?:[.,]\d{1,2})?$/.test(raw)||!Number.isFinite(w)||w<=0||w>500){$("weightInput").focus();return}
  const now=new Date(),d=today(),hh=String(now.getHours()).padStart(2,"0"),mm=String(now.getMinutes()).padStart(2,"0"),time=hh+":"+mm,r=records.find(x=>x.date===d);if(r){r.weight=w;r.weightRaw=raw;r.time=time}else records.push({date:d,weight:w,weightRaw:raw,time});
