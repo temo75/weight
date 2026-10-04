@@ -504,6 +504,35 @@ function parseWeightOverlay(json,canvas){
 async function recognizeWeightOCR(canvas,focusLCD=false){
   const key=getOCRSpaceKey();
   if(!key)throw new Error("OCR.space API Key არ არის შეყვანილი");
+
+  // First try the dedicated 7-segment reader. This is especially important
+  // for close-up LCD photos where generic OCR may return only the first digit.
+  try{
+    const directBoxes=[
+      [.08,.22,.84,.56],
+      [.02,.10,.96,.72],
+      [.12,.05,.76,.88]
+    ];
+    const direct=[];
+    for(const box of directBoxes){
+      const roi=sevenMakeROI(canvas,box,1200,600);
+      const found=sevenTryROI(roi);
+      if(found && found.raw && String(found.raw).length>=2){
+        const raw=String(found.raw);
+        let value=raw;
+        if(/^\d{4}$/.test(raw)) value=raw.slice(0,2)+"."+raw.slice(2);
+        else if(/^\d{3}$/.test(raw)) value=raw.slice(0,2)+"."+raw.slice(2);
+        const n=Number(value);
+        if(Number.isFinite(n)&&n>0&&n<=300){
+          direct.push({raw:value,number:n,priority:130});
+        }
+      }
+    }
+    if(direct.length){
+      direct.sort((a,b)=>String(b.raw).length-String(a.raw).length);
+      return direct[0];
+    }
+  }catch(_){}
   $("scanStatus").textContent="🔎 OCR.space კითხულობს LCD-ს...";
 
   // Do not use the camera-frame coordinates on a saved/uploaded photo.
