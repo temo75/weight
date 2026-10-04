@@ -103,6 +103,8 @@ let range="all";
 const $=id=>document.getElementById(id);
 const today=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
 const dateText=s=>new Date(s+"T12:00:00").toLocaleDateString("ka-GE",{day:"2-digit",month:"long",year:"numeric"});
+const timeText=t=>t?String(t).slice(0,5).replace(":","."):"";
+const dateTimeText=r=>dateText(r.date)+(r.time?" • "+timeText(r.time):"");
 const fmt=n=>Number(n).toFixed(1);
 const signed=n=>Math.abs(n)<.0001?"0.0 კგ":(n>0?"+":"")+fmt(n)+" კგ";
 function saveAll(){localStorage.setItem(KEY,JSON.stringify(records));localStorage.setItem("temo_weight_v1",JSON.stringify(records));localStorage.setItem(SET,JSON.stringify(settings))}
@@ -135,14 +137,14 @@ function render(){
  if(settings.goal&&records.length){let left=records.at(-1).weight-settings.goal;$("goalStart").textContent="საწყისი: "+fmt(records[0].weight)+" კგ";$("goalLeft").textContent=left<=0?"🎉 მიზანი მიღწეულია!":"მიზნამდე: "+fmt(left)+" კგ";$("goalFill").style.width=p+"%"}else{$("goalStart").textContent="საწყისი: —";$("goalLeft").textContent="მიზანი: —";$("goalFill").style.width="0%"}
  if(records.length){let v=records.map(r=>+r.weight);$("avg").textContent=fmt(v.reduce((a,b)=>a+b,0)/v.length)+" კგ";$("min").textContent=fmt(Math.min(...v))+" კგ";$("max").textContent=fmt(Math.max(...v))+" კგ"}else{$("avg").textContent=$("min").textContent=$("max").textContent="—"}
  $("historyCount").textContent=records.length+" ჩანაწერი";
- const h=$("history");if(!records.length)h.innerHTML='<div class="empty">ჯერ არცერთი ჩანაწერი არ არის.</div>';else h.innerHTML=records.slice().reverse().map((r,k)=>{let j=records.length-1-k,p=j>0?r.weight-records[j-1].weight:null,cl=p===null?"":p<0?"green":p>0?"red":"";return '<div class="row"><div><div class="rdate">'+dateText(r.date)+'</div><div class="small">'+r.date+'</div></div><div class="rw">'+fmt(r.weight)+' კგ</div><div class="chg '+cl+'">'+(p===null?"—":signed(p))+'</div><button class="del" data-del="'+r.date+'">×</button></div>'}).join("");
+ const h=$("history");if(!records.length)h.innerHTML='<div class="empty">ჯერ არცერთი ჩანაწერი არ არის.</div>';else h.innerHTML=records.slice().reverse().map((r,k)=>{let j=records.length-1-k,p=j>0?r.weight-records[j-1].weight:null,cl=p===null?"":p<0?"green":p>0?"red":"";return '<div class="row"><div><div class="rdate">'+dateTimeText(r)+'</div><div class="small">'+r.date+(r.time?" • "+timeText(r.time):"")+'</div></div><div class="rw">'+fmt(r.weight)+' კგ</div><div class="chg '+cl+'">'+(p===null?"—":signed(p))+'</div><button class="del" data-del="'+r.date+'">×</button></div>'}).join("");
  renderCalendar();draw()
 }
 
 
 $("saveBtn").onclick=()=>{
  const raw=String($("weightInput").value||"").trim(),w=Number(raw.replace(",","."));if(!/^\d{1,3}(?:[.,]\d{1,2})?$/.test(raw)||!Number.isFinite(w)||w<=0||w>500){$("weightInput").focus();return}
- const d=today(),r=records.find(x=>x.date===d);if(r){r.weight=w;r.weightRaw=raw}else records.push({date:d,weight:w,weightRaw:raw});
+ const now=new Date(),d=today(),hh=String(now.getHours()).padStart(2,"0"),mm=String(now.getMinutes()).padStart(2,"0"),time=hh+":"+mm,r=records.find(x=>x.date===d);if(r){r.weight=w;r.weightRaw=raw;r.time=time}else records.push({date:d,weight:w,weightRaw:raw,time});
  records.sort((a,b)=>a.date.localeCompare(b.date));saveAll();$("weightInput").value="";render()
 };
 $("settingsBtn").onclick=()=>{const g=Number($("goalInput").value),h=Number($("heightInput").value);settings.goal=g>0?g:null;settings.height=h>=100?h:null;saveAll();render()};
