@@ -39,6 +39,13 @@
 </section>
 
 <section class="card">
+  <div class="section-head"><div><div class="title">📏 <span data-i18n="heightTitle">სიმაღლე</span></div><div class="muted" data-i18n="heightInfo">შეიყვანე ერთხელ და დაიმახსოვრე</div></div></div>
+  <div class="muted" id="savedHeight"></div>
+  <input id="heightInput" type="number" min="100" max="250" step="1" placeholder="სიმაღლე, სმ" data-i18n-placeholder="heightCm">
+  <button class="btn secondary" id="heightSettingsBtn" data-i18n="rememberHeight">დაიმახსოვრე</button>
+</section>
+
+<section class="card">
   <div class="section-head"><div><div class="title" data-i18n="todayWeighing">⚖️ დღევანდელი აწონვა</div><div class="muted" data-i18n="onePerDay">ერთი ჩანაწერი თითო დღეზე</div></div></div>
   <input id="weightInput" type="text" inputmode="decimal" autocomplete="off" placeholder="შეიყვანე წონა" data-i18n-placeholder="enterWeight">
   <button class="btn" id="saveBtn" data-i18n="save">შენახვა</button>
@@ -53,12 +60,7 @@
   <div class="goalrow"><span id="goalStart" data-i18n="start">საწყისი: —</span><span id="goalLeft" data-i18n="toGoal">მიზნამდე: —</span></div>
 </section>
 
-<section class="card">
-  <div class="section-head"><div><div class="title">📏 <span data-i18n="heightTitle">სიმაღლე</span></div><div class="muted" data-i18n="heightInfo">შეიყვანე ერთხელ და დაიმახსოვრე</div></div></div>
-  <div class="muted" id="savedHeight"></div>
-  <input id="heightInput" type="number" min="100" max="250" step="1" placeholder="სიმაღლე, სმ" data-i18n-placeholder="heightCm">
-  <button class="btn secondary" id="heightSettingsBtn" data-i18n="rememberHeight">დაიმახსოვრე</button>
-</section>
+
 
 <section class="card">
   <div class="stats">
