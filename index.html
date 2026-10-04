@@ -504,41 +504,42 @@ function parseWeightOverlay(json,canvas){
 async function recognizeWeightOCR(canvas,focusLCD=false){
   const key=getOCRSpaceKey();
   if(!key)throw new Error("OCR.space API Key არ არის შეყვანილი");
-  $("scanStatus").textContent="🔎 OCR.space კითხულობს რიცხვს...";
+  $("scanStatus").textContent="🔎 OCR.space კითხულობს LCD-ს...";
 
-  // For a full uploaded photo, send OCR only the same LCD window used by
-  // the camera frame. This prevents printed scale labels and other digits
-  // from competing with the large LCD number.
+  // Do not use the camera-frame coordinates on a saved/uploaded photo.
+  // Instead keep a broad central area that contains the LCD, then let OCR
+  // see several ordinary image variants of the same display.
   let ocrCanvas=canvas;
   if(focusLCD){
-    const x=Math.round(canvas.width*.08);
-    const y=Math.round(canvas.height*.31);
-    const w=Math.round(canvas.width*.84);
-    const h=Math.round(canvas.height*.38);
+    const x=Math.round(canvas.width*.05);
+    const y=Math.round(canvas.height*.15);
+    const w=Math.round(canvas.width*.90);
+    const h=Math.round(canvas.height*.70);
     const crop=document.createElement("canvas");
-    crop.width=1400;
-    crop.height=Math.max(350,Math.round(1400*h/w));
-    crop.getContext("2d").drawImage(canvas,x,y,w,h,0,0,crop.width,crop.height);
+    crop.width=1600;
+    crop.height=Math.max(500,Math.round(1600*h/w));
+    const ctx=crop.getContext("2d");
+    ctx.fillStyle="#fff";
+    ctx.fillRect(0,0,crop.width,crop.height);
+    ctx.drawImage(canvas,x,y,w,h,0,0,crop.width,crop.height);
     ocrCanvas=crop;
   }
 
-  // Run ordinary OCR on two image variants. LCD 7 can easily be mistaken
-  // for 1 when the segments are faint, so the second pass uses a clean
-  // high-contrast grayscale image. No custom 7-segment recognition is used.
   const makeVariant=(source,mode)=>{
     const out=document.createElement("canvas");
     out.width=source.width;out.height=source.height;
     const ctx=out.getContext("2d");
-    if(mode==="original"){
-      ctx.drawImage(source,0,0);
-      return out;
-    }
     ctx.drawImage(source,0,0);
+    if(mode==="original")return out;
+
     const im=ctx.getImageData(0,0,out.width,out.height);
     const d=im.data;
     for(let i=0;i<d.length;i+=4){
       const y=.299*d[i]+.587*d[i+1]+.114*d[i+2];
-      const v=Math.max(0,Math.min(255,(y-145)*2.35+128));
+      let v=y;
+      if(mode==="contrast")v=Math.max(0,Math.min(255,(y-125)*3.0+128));
+      if(mode==="threshold")v=y<145?35:245;
+      if(mode==="invert")v=255-y;
       d[i]=d[i+1]=d[i+2]=v;
     }
     ctx.putImageData(im,0,0);
@@ -566,54 +567,51 @@ async function recognizeWeightOCR(canvas,focusLCD=false){
     }finally{clearTimeout(timer);}
   };
 
-  const variants=[makeVariant(ocrCanvas,"original"),makeVariant(ocrCanvas,"contrast")];
+  const variants=[
+    makeVariant(ocrCanvas,"original"),
+    makeVariant(ocrCanvas,"contrast"),
+    makeVariant(ocrCanvas,"threshold"),
+    makeVariant(ocrCanvas,"invert")
+  ];
   const results=[];
-  // Engine 2 first because it is our current LCD pass; Engine 1 provides
-  // an independent ordinary-OCR reading when 7 and 1 look similar.
-  for(const engine of [2,1]){
+
+  // Engine 3 is the primary reader for the LCD. Engine 2 is the
+  // independent confirmation pass. We intentionally removed Engine 1.
+  for(const engine of [3,2]){
     for(const variant of variants){
       try{
         const json=await callOCR(variant,engine);
         if(!json)continue;
-        const found=parseWeightOverlay(json,canvas);
-        if(found)results.push(found);
+        const found=parseWeightOverlay(json,ocrCanvas);
+        if(found)results.push({found,engine});
         else{
           const text=(json.ParsedResults||[]).map(x=>String(x.ParsedText||"")).join("\n");
           const f=parseWeightOCR(text);
-          if(f)results.push(f);
+          if(f)results.push({found:f,engine});
         }
       }catch(_){}
     }
   }
 
-  if(!results.length)throw new Error("OCR-მ რიცხვი ვერ ამოიცნო");
+  if(!results.length)throw new Error("OCR-მ LCD-ის რიცხვი ვერ ამოიცნო");
 
-  // Prefer agreement between independent OCR passes. If they disagree,
-  // prefer the result seen by Engine 1 on the clean contrast pass, which
-  // is useful for LCD 7-vs-1 ambiguity.
+  // Prefer a result confirmed by both engines. If there is no agreement,
+  // Engine 3 wins because it is our primary LCD pass.
   const counts=new Map();
   for(const r of results){
-    const k=String(r.raw);
-    counts.set(k,(counts.get(k)||0)+1);
+    const k=String(r.found.raw);
+    const item=counts.get(k)||{count:0,engine3:0};
+    item.count++;
+    if(r.engine===3)item.engine3++;
+    counts.set(k,item);
   }
   results.sort((a,b)=>{
-    const ca=counts.get(String(a.raw))||0,cb=counts.get(String(b.raw))||0;
-    return (cb-ca)||(b.priority-a.priority);
+    const ca=counts.get(String(a.found.raw))||{count:0,engine3:0};
+    const cb=counts.get(String(b.found.raw))||{count:0,engine3:0};
+    return (cb.count-ca.count)||(cb.engine3-ca.engine3)||
+           (b.found.priority-a.found.priority);
   });
-  const best=results[0];
-  if(/1/.test(String(best.raw))){
-    try{
-      const json=await callOCR(makeVariant(canvas,"contrast"),3);
-      if(json){
-        const f=parseWeightOverlay(json,canvas);
-        if(f)return f;
-        const t=(json.ParsedResults||[]).map(x=>String(x.ParsedText||"")).join("\n");
-        const f2=parseWeightOCR(t);
-        if(f2)return f2;
-      }
-    }catch(_){}
-  }
-  return best;
+  return results[0].found;
 }
 function cropCameraFrame(video){
  const vw=video.videoWidth,vh=video.videoHeight,stage=video.parentElement,sw=stage.clientWidth,sh=stage.clientHeight;
