@@ -301,7 +301,7 @@ async function loadCloudData(user){
     if(cloudReady)authGate.classList.add("hidden");
   }
 }
-authSwitch.onclick=()=>setAuthMode(authMode==="login"?"register":"login");
+authSwitch.addEventListener("click",e=>{e.preventDefault();setAuthMode(authMode==="login"?"register":"login")});
 authSubmit.onclick=handleAuth;
 authPassword.addEventListener("keydown",e=>{if(e.key==="Enter")handleAuth()});
 auth.onAuthStateChanged(async user=>{
