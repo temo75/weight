@@ -256,6 +256,8 @@ function setAuthMode(mode){
   authSwitchText.textContent=T(mode==="login"?"authNoAccount":"authHaveAccount");
   authSwitch.textContent=T(mode==="login"?"authRegister":"authLogin");
   authPassword.autocomplete=mode==="login"?"current-password":"new-password";
+  authForgot.style.display=mode==="login"?"block":"none";
+  authMsg.style.color="#ef4d5a";
   authMsg.textContent="";
 }
 function authErrorMessage(e){
@@ -267,6 +269,7 @@ function authErrorMessage(e){
 }
 async function handlePasswordReset(){
   const email=String(authEmail.value||"").trim();
+  authMsg.style.color="#ef4d5a";
   authMsg.textContent="";
   if(!email){authMsg.textContent=T("authEnterEmail");authEmail.focus();return}
   authForgot.disabled=true;
@@ -281,6 +284,7 @@ async function handlePasswordReset(){
 }
 async function handleAuth(){
   const email=String(authEmail.value||"").trim(),password=String(authPassword.value||"");
+  authMsg.style.color="#ef4d5a";
   authMsg.textContent="";
   if(!email||!password){authMsg.textContent=T("authError");return}
   if(authMode==="register"&&password.length<6){authMsg.textContent=T("authShortPassword");return}
