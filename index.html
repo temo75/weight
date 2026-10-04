@@ -584,7 +584,20 @@ async function recognizeWeightOCR(canvas){
     const ca=counts.get(String(a.raw))||0,cb=counts.get(String(b.raw))||0;
     return (cb-ca)||(b.priority-a.priority);
   });
-  return results[0];
+  const best=results[0];
+  if(/1/.test(String(best.raw))){
+    try{
+      const json=await callOCR(makeVariant(canvas,"contrast"),3);
+      if(json){
+        const f=parseWeightOverlay(json,canvas);
+        if(f)return f;
+        const t=(json.ParsedResults||[]).map(x=>String(x.ParsedText||"")).join("\n");
+        const f2=parseWeightOCR(t);
+        if(f2)return f2;
+      }
+    }catch(_){}
+  }
+  return best;
 }
 function cropCameraFrame(video){
  const vw=video.videoWidth,vh=video.videoHeight,stage=video.parentElement,sw=stage.clientWidth,sh=stage.clientHeight;
