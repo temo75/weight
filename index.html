@@ -220,18 +220,18 @@ function render(){
 }
 
 
-const adminPage=$("adminPage"),adminPageClose=$("adminPageClose");let adminTouchX=0,adminTouchY=0,adminOpen=false;function isAdminUser(){return currentUser&&String(currentUser.email||"").toLowerCase()==="temo75elia@gmail.com"}function setAdminPage(open){if(!isAdminUser())return;adminOpen=!!open;adminPage.classList.toggle("open",adminOpen);adminPage.setAttribute("aria-hidden",adminOpen?"false":"true");document.body.style.overflow=adminOpen?"hidden":""}adminPageClose.onclick=()=>setAdminPage(false);adminPage.addEventListener("touchstart",e=>{if(e.touches.length===1){adminTouchX=e.touches[0].clientX;adminTouchY=e.touches[0].clientY}},{passive:true});adminPage.addEventListener("touchend",e=>{if(!adminTouchX)return;const dx=e.changedTouches[0].clientX-adminTouchX,dy=e.changedTouches[0].clientY-adminTouchY;adminTouchX=0;adminTouchY=0;if(dx>55&&Math.abs(dx)>Math.abs(dy)*1.2)setAdminPage(false)},{passive:true});let mainTouchX=0,mainTouchY=0;document.addEventListener("touchstart",e=>{if(adminOpen||!isAdminUser()||e.touches.length!==1)return;mainTouchX=e.touches[0].clientX;mainTouchY=e.touches[0].clientY},{passive:true});document.addEventListener("touchend",e=>{if(adminOpen||!isAdminUser()||!mainTouchX)return;const dx=e.changedTouches[0].clientX-mainTouchX,dy=e.changedTouches[0].clientY-mainTouchY;mainTouchX=0;mainTouchY=0;if(dx<-70&&Math.abs(dx)>Math.abs(dy)*1.2)setAdminPage(true)},{passive:true});const dataDrawer=$("dataDrawer"),dataDrawerBackdrop=$("dataDrawerBackdrop"),dataTrigger=$("dataTrigger"),dataDrawerClose=$("dataDrawerClose");
+const adminPage=$("adminPage"),adminPageClose=$("adminPageClose");let adminTouchX=0,adminTouchY=0,adminOpen=false;function isAdminUser(){return currentUser&&String(currentUser.email||"").toLowerCase()==="temo75elia@gmail.com"}function setAdminPage(open){if(!isAdminUser())return;adminOpen=!!open;adminPage.classList.toggle("open",adminOpen);adminPage.setAttribute("aria-hidden",adminOpen?"false":"true");document.body.style.overflow=adminOpen?"hidden":""}$("adminPageClose").onclick=()=>setAdminPage(false);adminPage.addEventListener("touchstart",e=>{if(e.touches.length===1){adminTouchX=e.touches[0].clientX;adminTouchY=e.touches[0].clientY}},{passive:true});adminPage.addEventListener("touchend",e=>{if(!adminTouchX)return;const dx=e.changedTouches[0].clientX-adminTouchX,dy=e.changedTouches[0].clientY-adminTouchY;adminTouchX=0;adminTouchY=0;if(dx>55&&Math.abs(dx)>Math.abs(dy)*1.2)setAdminPage(false)},{passive:true});let mainTouchX=0,mainTouchY=0;document.addEventListener("touchstart",e=>{if(adminOpen||!isAdminUser()||e.touches.length!==1)return;mainTouchX=e.touches[0].clientX;mainTouchY=e.touches[0].clientY},{passive:true});document.addEventListener("touchend",e=>{if(adminOpen||!isAdminUser()||!mainTouchX)return;const dx=e.changedTouches[0].clientX-mainTouchX,dy=e.changedTouches[0].clientY-mainTouchY;mainTouchX=0;mainTouchY=0;if(dx<-70&&Math.abs(dx)>Math.abs(dy)*1.2)setAdminPage(true)},{passive:true});const dataDrawer=$("dataDrawer"),dataDrawerBackdrop=$("dataDrawerBackdrop"),dataTrigger=$("dataTrigger"),dataDrawerClose=$("dataDrawerClose");
 function setDataDrawer(open){dataDrawer.classList.toggle("open",open);dataDrawerBackdrop.classList.toggle("open",open);dataDrawer.setAttribute("aria-hidden",open?"false":"true");dataTrigger.setAttribute("aria-expanded",open?"true":"false");document.body.style.overflow=open?"hidden":""}
-dataTrigger.onclick=()=>setDataDrawer(true);
+$("dataTrigger").onclick=()=>setDataDrawer(true);
 dataTrigger.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();setDataDrawer(true)}};
-dataDrawerClose.onclick=()=>setDataDrawer(false);
-dataDrawerBackdrop.onclick=()=>setDataDrawer(false);
+$("dataDrawerClose").onclick=()=>setDataDrawer(false);
+$("dataDrawerBackdrop").onclick=()=>setDataDrawer(false);
 const historyDrawer=$("historyDrawer"),historyDrawerBackdrop=$("historyDrawerBackdrop"),historyTrigger=$("historyTrigger"),historyDrawerClose=$("historyDrawerClose");
 function setHistoryDrawer(open){historyDrawer.classList.toggle("open",open);historyDrawerBackdrop.classList.toggle("open",open);historyDrawer.setAttribute("aria-hidden",open?"false":"true");historyTrigger.setAttribute("aria-expanded",open?"true":"false");document.body.style.overflow=open?"hidden":""}
-historyTrigger.onclick=()=>setHistoryDrawer(true);
+$("historyTrigger").onclick=()=>setHistoryDrawer(true);
 historyTrigger.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();setHistoryDrawer(true)}};
-historyDrawerClose.onclick=()=>setHistoryDrawer(false);
-historyDrawerBackdrop.onclick=()=>setHistoryDrawer(false);
+$("historyDrawerClose").onclick=()=>setHistoryDrawer(false);
+$("historyDrawerBackdrop").onclick=()=>setHistoryDrawer(false);
 let historyTouchX=0,historyTouchY=0;
 historyDrawer.addEventListener("touchstart",e=>{if(e.touches.length===1){historyTouchX=e.touches[0].clientX;historyTouchY=e.touches[0].clientY}},{passive:true});
 historyDrawer.addEventListener("touchend",e=>{if(!historyTouchX)return;const dx=e.changedTouches[0].clientX-historyTouchX,dy=e.changedTouches[0].clientY-historyTouchY;historyTouchX=0;historyTouchY=0;if(dx<-55&&Math.abs(dx)>Math.abs(dy)*1.2)setHistoryDrawer(false)},{passive:true});
@@ -323,8 +323,8 @@ async function loadCloudData(user){
   }
 }
 authSwitch.addEventListener("click",e=>{e.preventDefault();setAuthMode(authMode==="login"?"register":"login")});
-authSubmit.onclick=handleAuth;authForgot.onclick=handlePasswordReset;logoutBtn.onclick=()=>auth.signOut();
-authPassToggle.onclick=()=>{const visible=authPassword.type==="text";authPassword.type=visible?"password":"text";authPassToggle.textContent=visible?"👁":"🙈";authPassToggle.setAttribute("aria-label",visible?"პაროლის ჩვენება":"პაროლის დამალვა")};
+$("authSubmit").onclick=handleAuth;$("authForgot").onclick=handlePasswordReset;$("logoutBtn").onclick=()=>auth.signOut();
+$("authPassToggle").onclick=()=>{const visible=authPassword.type==="text";authPassword.type=visible?"password":"text";authPassToggle.textContent=visible?"👁":"🙈";authPassToggle.setAttribute("aria-label",visible?"პაროლის ჩვენება":"პაროლის დამალვა")};
 authPassword.addEventListener("keydown",e=>{if(e.key==="Enter")handleAuth()});
 auth.onAuthStateChanged(async user=>{
   currentUser=user;
