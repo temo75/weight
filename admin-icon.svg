@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<defs>
+ <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#fff"/><stop offset="1" stop-color="#ffe9e9"/></linearGradient>
+ <linearGradient id="red" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ff2638"/><stop offset=".55" stop-color="#e00016"/><stop offset="1" stop-color="#8d0010"/></linearGradient>
+ <filter id="glow"><feGaussianBlur stdDeviation="8" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+</defs>
+<rect x="12" y="12" width="488" height="488" rx="78" fill="url(#bg)" stroke="#f0182c" stroke-width="10"/>
+<g filter="url(#glow)" fill="url(#red)" stroke="#fff" stroke-width="7" stroke-linejoin="round">
+ <circle cx="256" cy="125" r="42"/>
+ <path d="M256 292C218 265 150 225 105 168C171 169 220 194 256 241C292 194 341 169 407 168C362 225 294 265 256 292Z"/>
+</g>
+<text x="256" y="350" text-anchor="middle" font-family="Arial,sans-serif" font-size="62" font-weight="800" fill="#c90017" stroke="#fff" stroke-width="3" paint-order="stroke">TEMO</text>
+<rect x="62" y="372" width="388" height="94" rx="30" fill="url(#red)" stroke="#fff" stroke-width="7" filter="url(#glow)"/>
+<text x="256" y="437" text-anchor="middle" font-family="Arial,sans-serif" font-size="58" font-weight="900" letter-spacing="3" fill="#fff">ADMIN</text>
+</svg>
