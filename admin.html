@@ -137,7 +137,6 @@ auth.onAuthStateChanged(async user=>{
   }
   if(String(user.email||"").toLowerCase()!==ADMIN_EMAIL){
     setMsg("ამ ანგარიშს Admin-ზე წვდომა არ აქვს.");
-    await auth.signOut();
     return;
   }
   $("loginBox").classList.add("hidden");
