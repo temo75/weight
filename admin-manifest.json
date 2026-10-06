@@ -1,0 +1,12 @@
+{
+  "name":"TEMO WEIGHT ADMIN",
+  "short_name":"TEMO ADMIN",
+  "start_url":"/weight/admin.html",
+  "scope":"/weight/",
+  "display":"standalone",
+  "background_color":"#ffffff",
+  "theme_color":"#e00016",
+  "icons":[
+    {"src":"/weight/admin-icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}
+  ]
+}
