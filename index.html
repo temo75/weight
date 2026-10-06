@@ -319,7 +319,7 @@ async function loadCloudData(user){
     console.error("TEMO WEIGHT cloud error",e);
   }finally{
     cloudBusy=false;
-    if(cloudReady)authGate.classList.remove("show");else authGate.classList.add("show");
+    authGate.classList.remove("show");
   }
 }
 authSwitch.addEventListener("click",e=>{e.preventDefault();setAuthMode(authMode==="login"?"register":"login")});
