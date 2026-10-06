@@ -4,6 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>TEMO WEIGHT — Admin</title>
+<link rel="manifest" href="/weight/admin-manifest.json">
+<meta name="theme-color" content="#e00016">
+<link rel="icon" href="/weight/admin-icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/weight/admin-icon.svg">
 <style>
 :root{--blue:#08a8ff;--red:#ef4d5a;--green:#19b66b;--text:#102033;--line:#cfe2ee}
 *{box-sizing:border-box}
@@ -142,5 +146,6 @@ auth.onAuthStateChanged(async user=>{
   await loadUsers();
 });
 </script>
+<script>if("serviceWorker" in navigator){navigator.serviceWorker.register("/weight/admin-sw.js",{scope:"/weight/"}).catch(()=>{});}</script>
 </body>
 </html>
