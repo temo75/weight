@@ -140,6 +140,7 @@
 <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore-compat.js"></script>
+<div id="adminPage" class="admin-page" aria-hidden="true"><div class="admin-page-bar"><button class="admin-page-close" id="adminPageClose" aria-label="უკან">‹</button><div class="admin-page-title">TEMO <span style="font-size:14px">ADMIN</span></div><div class="admin-page-hint">← უკან</div></div><iframe id="adminFrame" src="admin.html" title="TEMO ADMIN"></iframe></div>
 <script>
 const firebaseConfig={
   apiKey:"AIzaSyCOsRuJE3i5G1GWe99tP"+"ZSj5zOURwa4Kms",
@@ -339,6 +340,5 @@ auth.onAuthStateChanged(async user=>{
 if(localStorage.getItem("temo_weight_theme")==="dark"){document.documentElement.classList.add("dark");$("themeBtn").textContent="☀️"}
 addEventListener("resize",draw);applyLanguage();
 </script>
-<div id="adminPage" class="admin-page" aria-hidden="true"><div class="admin-page-bar"><button class="admin-page-close" id="adminPageClose" aria-label="უკან">‹</button><div class="admin-page-title">TEMO <span style="font-size:14px">ADMIN</span></div><div class="admin-page-hint">← უკან</div></div><iframe id="adminFrame" src="admin.html" title="TEMO ADMIN"></iframe></div>
 </body>
 </html>
