@@ -68,12 +68,17 @@ button{border:0;border-radius:12px;padding:12px 15px;cursor:pointer;font-weight:
 
 <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-functions-compat.js"></script>
 <script>
 const firebaseConfig={apiKey:"AIzaSyCOsRuJE3i5G1GWe99tPZSj5zOURwa4Kms",authDomain:"temo-50.firebaseapp.com",databaseURL:"https://temo-50-default-rtdb.europe-west1.firebasedatabase.app",projectId:"temo-50",storageBucket:"temo-50.firebasestorage.app",messagingSenderId:"147888227478",appId:"1:147888227478:web:0f7f0808d508d113116eb7"};
 const ADMIN_EMAIL="temo75elia@gmail.com";
 firebase.initializeApp(firebaseConfig);
-const auth=firebase.auth(),db=firebase.firestore();
+const auth=firebase.auth();
+const functions=firebase.app().functions("europe-west1");
+const bootstrapAdmin=functions.httpsCallable("bootstrapAdmin");
+const adminListUsers=functions.httpsCallable("adminListUsers");
+const adminSetDisabled=functions.httpsCallable("adminSetDisabled");
+const adminDeleteUser=functions.httpsCallable("adminDeleteUser");
 const $=id=>document.getElementById(id);
 let users=[];
 
@@ -84,65 +89,102 @@ function setMsg(text,ok=false){
 function esc(s){
   return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 }
+let adminUid="";
+let busy=false;
+function errorText(e){
+  console.error("TEMO WEIGHT Admin error",e);
+  const code=String(e&&e.code||"");
+  if(code.includes("functions/not-found")||code.includes("functions/unavailable")) return "Firebase Admin ფუნქციები ჯერ არ არის განთავსებული.";
+  if(code.includes("permission-denied")) return "წვდომა უარყოფილია: შეამოწმე ადმინისტრატორის უფლებები.";
+  if(code.includes("unauthenticated")) return "სესია დასრულდა. თავიდან შედი.";
+  return (e&&e.message)||"შეცდომა მოხდა.";
+}
 function render(){
   const q=$("search").value.trim().toLowerCase();
   const list=users.filter(u=>String(u.email||"").toLowerCase().includes(q));
   $("total").textContent=users.length;
-  $("users").innerHTML=list.map(u=>'<div class="user"><div class="email">'+esc(u.email||"(email არ არის)")+'</div><div class="meta">რეგისტრირებული მომხმარებელი</div></div>').join("")
-    ||'<div class="meta">მომხმარებელი ვერ მოიძებნა.</div>';
+  $("users").innerHTML=list.map(u=>{
+    const self=u.uid===adminUid, disabled=!!u.disabled;
+    return '<div class="user" style="'+(disabled?'opacity:.7':'')+'"><div class="email">'+esc(u.email||"(email არ არის)")+'</div>'+
+      '<div class="meta">'+(disabled?'⛔ დაბლოკილია':'✅ აქტიურია')+' · '+(u.emailVerified?'ელფოსტა დადასტურებულია':'ელფოსტა დაუდასტურებელია')+'</div>'+
+      '<div class="actions" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">'+
+      '<button class="muted" data-action="toggle" data-uid="'+esc(u.uid)+'" '+(self?'disabled':'')+'>'+(disabled?'განბლოკვა':'დაბლოკვა')+'</button>'+
+      '<button style="background:#ef4d5a;color:white" data-action="delete" data-uid="'+esc(u.uid)+'" '+(self?'disabled':'')+'>წაშლა</button></div></div>';
+  }).join("") || '<div class="meta">მომხმარებელი ვერ მოიძებნა.</div>';
 }
 async function loadUsers(){
   $("status").textContent="მომხმარებლები იტვირთება...";
   $("refresh").disabled=true;
   try{
-    const snap=await db.collection("users").get();
-    users=snap.docs.map(d=>({uid:d.id,...(d.data()||{})}))
-      .filter(u=>u.email)
-      .sort((a,b)=>String(a.email).localeCompare(String(b.email)));
+    const res=await adminListUsers();
+    users=Array.isArray(res.data.users)?res.data.users:[];
+    users.sort((a,b)=>String(a.email||"").localeCompare(String(b.email||"")));
     render();
-    $("status").textContent="მზადაა";
-  }catch(e){
-    users=[];
-    render();
-    $("status").textContent="ვერ ჩაიტვირთა. შეამოწმე Firestore Rules.";
-    console.error("TEMO WEIGHT Admin Firestore error",e);
-  }finally{
-    $("refresh").disabled=false;
-  }
+    $("status").textContent="მზადაა · სულ: "+(res.data.total??users.length);
+  }catch(e){ $("status").textContent="ვერ ჩაიტვირთა: "+errorText(e); }
+  finally{$("refresh").disabled=false;}
+}
+async function userAction(action,uid){
+  if(busy)return;
+  const u=users.find(x=>x.uid===uid); if(!u)return;
+  if(uid===adminUid)return;
+  if(action==="delete"&&!confirm("ნამდვილად წაშალო "+(u.email||"ეს მომხმარებელი")+"?"))return;
+  if(action==="toggle"&&!confirm((u.disabled?"განბლოკო ":"დაბლოკო ")+(u.email||"ეს მომხმარებელი")+"?"))return;
+  busy=true; $("status").textContent="მოქმედება სრულდება...";
+  $("users").querySelectorAll("button").forEach(b=>b.disabled=true);
+  try{
+    if(action==="delete") await adminDeleteUser({uid});
+    else await adminSetDisabled({uid,disabled:!u.disabled});
+    await loadUsers();
+    $("status").textContent=action==="delete"?"მომხმარებელი წაიშალა.":"სტატუსი განახლდა.";
+  }catch(e){$("status").textContent="ვერ შესრულდა: "+errorText(e);}
+  finally{busy=false;render();}
 }
 
 $("login").onclick=async()=>{
   setMsg("");
   const email=$("email").value.trim(),password=$("password").value;
   if(!email||!password){setMsg("შეიყვანე email და პაროლი.");return}
+  if(email.toLowerCase()!==ADMIN_EMAIL){setMsg("შესვლა დაშვებულია მხოლოდ ადმინისტრატორის ანგარიშისთვის.");return}
   $("login").disabled=true;
   try{
     await auth.signInWithEmailAndPassword(email,password);
   }catch(e){
+    console.error("Admin login error",e);
     setMsg("შესვლა ვერ მოხერხდა. შეამოწმე email და პაროლი.");
-  }finally{
-    $("login").disabled=false;
-  }
+  }finally{$("login").disabled=false;}
 };
 $("password").addEventListener("keydown",e=>{if(e.key==="Enter")$("login").click()});
 $("search").oninput=render;
 $("refresh").onclick=loadUsers;
 $("logout").onclick=()=>auth.signOut();
 
+$("users").addEventListener("click",e=>{
+  const b=e.target.closest("button[data-action]");
+  if(b)userAction(b.dataset.action,b.dataset.uid);
+});
 auth.onAuthStateChanged(async user=>{
   $("adminBox").classList.add("hidden");
   if(!user){
+    adminUid=""; users=[];
     $("loginBox").classList.remove("hidden");
+    $("users").innerHTML=""; $("total").textContent="0";
     return;
   }
   if(String(user.email||"").toLowerCase()!==ADMIN_EMAIL){
     setMsg("ამ ანგარიშს Admin-ზე წვდომა არ აქვს.");
-    return;
+    await auth.signOut(); return;
   }
+  adminUid=user.uid;
   $("loginBox").classList.add("hidden");
   $("adminEmail").textContent=user.email||"";
   $("adminBox").classList.remove("hidden");
-  await loadUsers();
+  $("status").textContent="ადმინისტრატორის უფლებები მოწმდება...";
+  try{
+    await bootstrapAdmin();
+    await user.getIdToken(true);
+    await loadUsers();
+  }catch(e){$("status").textContent="ადმინისტრატორის უფლება ვერ დადასტურდა: "+errorText(e);}
 });
 </script>
 <script>if("serviceWorker" in navigator){navigator.serviceWorker.register("/weight/admin-sw.js",{scope:"/weight/"}).catch(()=>{});}</script>
