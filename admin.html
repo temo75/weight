@@ -68,18 +68,12 @@ button{border:0;border-radius:12px;padding:12px 15px;cursor:pointer;font-weight:
 
 <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-functions-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore-compat.js"></script>
 <script>
 const firebaseConfig={apiKey:"AIzaSyCOsRuJE3i5G1GWe99tPZSj5zOURwa4Kms",authDomain:"temo-50.firebaseapp.com",databaseURL:"https://temo-50-default-rtdb.europe-west1.firebasedatabase.app",projectId:"temo-50",storageBucket:"temo-50.firebasestorage.app",messagingSenderId:"147888227478",appId:"1:147888227478:web:0f7f0808d508d113116eb7"};
 const ADMIN_EMAIL="temo75elia@gmail.com";
 firebase.initializeApp(firebaseConfig);
 const auth=firebase.auth(),db=firebase.firestore();
-const functions=firebase.app().functions("europe-west1");
-const bootstrapAdmin=functions.httpsCallable("bootstrapAdmin");
-const adminListUsers=functions.httpsCallable("adminListUsers");
-const adminSetDisabled=functions.httpsCallable("adminSetDisabled");
-const adminDeleteUser=functions.httpsCallable("adminDeleteUser");
 const $=id=>document.getElementById(id);
 let users=[];
 
@@ -94,13 +88,7 @@ let adminUid="";
 let busy=false;
 function errorText(e){
   console.error("TEMO WEIGHT Admin error",e);
-  const code=String(e&&e.code||"");
-  const message=String(e&&e.message||"");
-  if(code.includes("functions/not-found")||code.includes("functions/unavailable")) return "Firebase Admin ფუნქციები ჯერ არ არის განთავსებული. ("+code+")";
-  if(code.includes("permission-denied")) return "წვდომა უარყოფილია. ("+code+") შეამოწმე ადმინისტრატორის უფლებები.";
-  if(code.includes("unauthenticated")) return "სესია დასრულდა. თავიდან შედი. ("+code+")";
-  if(code.includes("functions/internal")||code==="internal") return "Firebase სერვერის შიდა შეცდომა ("+(code||"no-code")+"). "+(message||"შეამოწმე Firebase Console → Functions → Logs.");
-  return (code?code+": ":"")+(message||"უცნობი შეცდომა");
+  return (e&&e.code?e.code+": ":"")+(e&&e.message?e.message:"შეამოწმე Firestore Rules.");
 }
 function render(){
   const q=$("search").value.trim().toLowerCase();
@@ -123,36 +111,40 @@ async function loadUsers(){
   $("status").textContent="მომხმარებლები იტვირთება...";
   $("refresh").disabled=true;
   try{
-    try{
-      const res=await adminListUsers();
-      users=Array.isArray(res.data.users)?res.data.users:[];
-      $("status").textContent="მზადაა · Firebase Authentication · სულ: "+(res.data.total??users.length);
-    }catch(functionError){
-      console.warn("Admin list function unavailable; using Firestore profile list",functionError);
-      const snap=await db.collection("users").get();
-      users=snap.docs.map(d=>({uid:d.id,...(d.data()||{}),disabled:false,emailVerified:false}));
-      users=users.filter(u=>u.email);
-      $("status").textContent="მომხმარებლების სია ჩაიტვირთა Firestore-იდან. დაბლოკვა/წაშლის მოქმედებისთვის სერვერული ფუნქციები უნდა მუშაობდეს.";
-    }
+    const snap=await db.collection("users").get();
+    users=snap.docs.map(d=>({uid:d.id,...(d.data()||{}),disabled:!!d.data()?.blocked,emailVerified:false}));
+    users=users.filter(u=>u.email);
     users.sort((a,b)=>String(a.email||"").localeCompare(String(b.email||"")));
     render();
+    $("status").textContent="სია ჩაიტვირთა · "+users.filter(u=>String(u.email||"").toLowerCase()!==ADMIN_EMAIL).length+" მომხმარებელი · უფასო Spark";
   }catch(e){
-    $("status").textContent="მომხმარებლები ვერ ჩაიტვირთა: "+errorText(e);
+    $("status").textContent="სია ვერ ჩაიტვირთა: "+errorText(e);
   }finally{$("refresh").disabled=false;}
 }
 async function userAction(action,uid){
   if(busy)return;
-  const u=users.find(x=>x.uid===uid); if(!u)return;
-  if(uid===adminUid)return;
-  if(action==="delete"&&!confirm("ნამდვილად წაშალო "+(u.email||"ეს მომხმარებელი")+"?"))return;
-  if(action==="toggle"&&!confirm((u.disabled?"განბლოკო ":"დაბლოკო ")+(u.email||"ეს მომხმარებელი")+"?"))return;
+  const u=users.find(x=>x.uid===uid); if(!u||uid===adminUid)return;
+  if(action==="delete"&&!confirm("წაიშალოს "+(u.email||"მომხმარებლის")+" მონაცემების ჩანაწერი? Auth ანგარიში დარჩება."))return;
+  if(action==="toggle"&&!confirm((u.disabled?"განბლოკო ":"დაბლოკო ")+(u.email||"მომხმარებელი")+"?"))return;
   busy=true; $("status").textContent="მოქმედება სრულდება...";
   $("users").querySelectorAll("button").forEach(b=>b.disabled=true);
   try{
-    if(action==="delete") await adminDeleteUser({uid});
-    else await adminSetDisabled({uid,disabled:!u.disabled});
-    await loadUsers();
-    $("status").textContent=action==="delete"?"მომხმარებელი წაიშალა.":"სტატუსი განახლდა.";
+    const ref=db.collection("users").doc(uid);
+    if(action==="delete"){
+      await ref.delete();
+      users=users.filter(x=>x.uid!==uid);
+      $("status").textContent="მონაცემების ჩანაწერი წაიშალა. Authentication ანგარიში არ წაშლილა.";
+    }else{
+      const blocked=!u.disabled;
+      await ref.update({
+        blocked,
+        blockedAt: blocked ? firebase.firestore.FieldValue.serverTimestamp() : firebase.firestore.FieldValue.delete(),
+        blockedBy: blocked ? adminUid : firebase.firestore.FieldValue.delete()
+      });
+      u.disabled=blocked;
+      $("status").textContent=blocked?"მომხმარებელი დაიბლოკა.":"მომხმარებელი განიბლოკა.";
+    }
+    render();
   }catch(e){$("status").textContent="ვერ შესრულდა: "+errorText(e);}
   finally{busy=false;render();}
 }
@@ -196,12 +188,6 @@ auth.onAuthStateChanged(async user=>{
   $("adminEmail").textContent=user.email||"";
   $("adminBox").classList.remove("hidden");
   $("status").textContent="ადმინისტრატორის უფლებები მოწმდება...";
-  try{
-    await bootstrapAdmin();
-    await user.getIdToken(true);
-  }catch(e){
-    console.warn("Admin bootstrap failed; trying Firestore user list",e);
-  }
   await loadUsers();
 });
 </script>
