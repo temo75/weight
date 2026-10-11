@@ -193,8 +193,10 @@ auth.onAuthStateChanged(async user=>{
   try{
     await bootstrapAdmin();
     await user.getIdToken(true);
-    await loadUsers();
-  }catch(e){$("status").textContent="ადმინისტრატორის უფლება ვერ დადასტურდა: "+errorText(e);}
+  }catch(e){
+    console.warn("Admin bootstrap failed; trying Firestore user list",e);
+  }
+  await loadUsers();
 });
 </script>
 <script>if("serviceWorker" in navigator){navigator.serviceWorker.register("/weight/admin-sw.js",{scope:"/weight/"}).catch(()=>{});}</script>
