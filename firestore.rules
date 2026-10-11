@@ -25,7 +25,7 @@ service cloud.firestore {
         ) || (
           isAdmin()
           && request.resource.data.diff(resource.data).affectedKeys()
-            .hasOnly(['blocked', 'blockedAt', 'blockedBy'])
+            .hasOnly(['blocked', 'blockedAt', 'blockedBy', 'records', 'settings', 'profileDeleted'])
         );
 
       allow delete: if isAdmin();
