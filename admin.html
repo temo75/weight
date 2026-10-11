@@ -95,10 +95,12 @@ let busy=false;
 function errorText(e){
   console.error("TEMO WEIGHT Admin error",e);
   const code=String(e&&e.code||"");
-  if(code.includes("functions/not-found")||code.includes("functions/unavailable")) return "Firebase Admin ფუნქციები ჯერ არ არის განთავსებული.";
-  if(code.includes("permission-denied")) return "წვდომა უარყოფილია: შეამოწმე ადმინისტრატორის უფლებები.";
-  if(code.includes("unauthenticated")) return "სესია დასრულდა. თავიდან შედი.";
-  return (e&&e.message)||"შეცდომა მოხდა.";
+  const message=String(e&&e.message||"");
+  if(code.includes("functions/not-found")||code.includes("functions/unavailable")) return "Firebase Admin ფუნქციები ჯერ არ არის განთავსებული. ("+code+")";
+  if(code.includes("permission-denied")) return "წვდომა უარყოფილია. ("+code+") შეამოწმე ადმინისტრატორის უფლებები.";
+  if(code.includes("unauthenticated")) return "სესია დასრულდა. თავიდან შედი. ("+code+")";
+  if(code.includes("functions/internal")||code==="internal") return "Firebase სერვერის შიდა შეცდომა ("+(code||"no-code")+"). "+(message||"შეამოწმე Firebase Console → Functions → Logs.");
+  return (code?code+": ":"")+(message||"უცნობი შეცდომა");
 }
 function render(){
   const q=$("search").value.trim().toLowerCase();
