@@ -102,8 +102,12 @@ function errorText(e){
 }
 function render(){
   const q=$("search").value.trim().toLowerCase();
-  const list=users.filter(u=>String(u.email||"").toLowerCase().includes(q));
-  $("total").textContent=users.length;
+  const list=users.filter(u=>
+    String(u.email||"").toLowerCase()!==ADMIN_EMAIL &&
+    String(u.email||"").toLowerCase().includes(q)
+  );
+  const ordinaryUsers=users.filter(u=>String(u.email||"").toLowerCase()!==ADMIN_EMAIL);
+  $("total").textContent=ordinaryUsers.length;
   $("users").innerHTML=list.map(u=>{
     const self=u.uid===adminUid, disabled=!!u.disabled;
     return '<div class="user" style="'+(disabled?'opacity:.7':'')+'"><div class="email">'+esc(u.email||"(email არ არის)")+'</div>'+
