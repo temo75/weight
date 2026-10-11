@@ -65,42 +65,60 @@ exports.adminSetDisabled = onCall({ region: REGION }, async (request) => {
   requireAdmin(request);
 
   const uid = String(request.data?.uid || "");
-  const disabled = Boolean(request.data?.disabled);
+  const disabled = request.data?.disabled === true;
 
-  if (!uid) {
-    throw new HttpsError("invalid-argument", "uid is required");
-  }
-
+  if (!uid) throw new HttpsError("invalid-argument", "uid is required");
   if (uid === request.auth.uid) {
     throw new HttpsError("failed-precondition", "You cannot disable yourself");
   }
 
-  const user = await auth.updateUser(uid, { disabled });
+  try {
+    const target = await auth.getUser(uid);
+    if (String(target.email || "").toLowerCase() === ADMIN_EMAIL) {
+      throw new HttpsError("failed-precondition", "The administrator account cannot be disabled here");
+    }
 
-  if (disabled) {
-    await auth.revokeRefreshTokens(uid);
+    const updated = await auth.updateUser(uid, { disabled });
+    if (disabled) await auth.revokeRefreshTokens(uid);
+    return { uid, disabled: !!updated.disabled };
+  } catch (error) {
+    console.error("adminSetDisabled failed", { uid, code: error.code, message: error.message });
+    if (error instanceof HttpsError) throw error;
+    if (error.code === "auth/user-not-found") {
+      throw new HttpsError("not-found", "მომხმარებლის ანგარიში Authentication-ში ვერ მოიძებნა.");
+    }
+    throw new HttpsError("internal", "მომხმარებლის სტატუსი ვერ შეიცვალა. შეამოწმე Cloud Functions logs.", { cause: String(error.code || error.message || "unknown") });
   }
-
-  return { uid, disabled: user.disabled };
 });
 
 exports.adminDeleteUser = onCall({ region: REGION }, async (request) => {
   requireAdmin(request);
 
   const uid = String(request.data?.uid || "");
-
-  if (!uid) {
-    throw new HttpsError("invalid-argument", "uid is required");
-  }
-
+  if (!uid) throw new HttpsError("invalid-argument", "uid is required");
   if (uid === request.auth.uid) {
     throw new HttpsError("failed-precondition", "You cannot delete yourself");
   }
 
-  await auth.deleteUser(uid);
-  await db.collection("users").doc(uid).delete().catch(() => {});
-
-  return { uid, deleted: true };
+  try {
+    const target = await auth.getUser(uid);
+    if (String(target.email || "").toLowerCase() === ADMIN_EMAIL) {
+      throw new HttpsError("failed-precondition", "The administrator account cannot be deleted here");
+    }
+    await auth.deleteUser(uid);
+    try { await db.collection("users").doc(uid).delete(); }
+    catch (firestoreError) {
+      console.error("Deleted auth user but Firestore cleanup failed", { uid, message: firestoreError.message });
+    }
+    return { uid, deleted: true };
+  } catch (error) {
+    console.error("adminDeleteUser failed", { uid, code: error.code, message: error.message });
+    if (error instanceof HttpsError) throw error;
+    if (error.code === "auth/user-not-found") {
+      throw new HttpsError("not-found", "მომხმარებლის ანგარიში Authentication-ში ვერ მოიძებნა.");
+    }
+    throw new HttpsError("internal", "მომხმარებლის წაშლა ვერ მოხერხდა. შეამოწმე Cloud Functions logs.", { cause: String(error.code || error.message || "unknown") });
+  }
 });
 
 exports.adminSetPassword = onCall({ region: REGION }, async (request) => {
