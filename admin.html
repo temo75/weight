@@ -124,7 +124,7 @@ async function loadUsers(){
 async function userAction(action,uid){
   if(busy)return;
   const u=users.find(x=>x.uid===uid); if(!u||uid===adminUid)return;
-  if(action==="delete"&&!confirm("წაიშალოს "+(u.email||"მომხმარებლის")+" მონაცემების ჩანაწერი? Auth ანგარიში დარჩება."))return;
+  if(action==="delete"&&!confirm("გაიწმინდოს "+(u.email||"მომხმარებლის")+" წონის მონაცემები და აპში დაიბლოკოს? Firebase Authentication ანგარიში დარჩება."))return;
   if(action==="toggle"&&!confirm((u.disabled?"განბლოკო ":"დაბლოკო ")+(u.email||"მომხმარებელი")+"?"))return;
   busy=true; $("status").textContent="მოქმედება სრულდება...";
   $("users").querySelectorAll("button").forEach(b=>b.disabled=true);
@@ -132,8 +132,8 @@ async function userAction(action,uid){
     const ref=db.collection("users").doc(uid);
     if(action==="delete"){
       await ref.delete();
-      users=users.filter(x=>x.uid!==uid);
-      $("status").textContent="მონაცემების ჩანაწერი წაიშალა. Authentication ანგარიში არ წაშლილა.";
+      u.disabled=true; u.records=[]; u.settings={}; u.profileDeleted=true;
+      $("status").textContent="მონაცემები გასუფთავდა და ანგარიში აპში დაიბლოკა. Firebase Authentication ანგარიში რჩება.";
     }else{
       const blocked=!u.disabled;
       await ref.update({
