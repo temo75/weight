@@ -304,6 +304,17 @@ async function loadCloudData(user){
     const ref=db.collection("users").doc(user.uid),snap=await ref.get();
     if(snap.exists){
       const data=snap.data()||{};
+      if(data.blocked===true){
+        cloudReady=false;
+        records=[];
+        settings={goal:null,height:null};
+        saveLocal();
+        authMsg.textContent="ეს ანგარიში ადმინისტრატორის მიერ დაბლოკილია.";
+        authMsg.style.color="#ef4d5a";
+        authGate.classList.add("show");
+        await auth.signOut();
+        return;
+      }
       if(Array.isArray(data.records))records=data.records.filter(x=>x&&x.date&&Number(x.weight)>0).sort((a,b)=>a.date.localeCompare(b.date));
       if(data.settings&&typeof data.settings==="object")settings=data.settings;
       saveLocal();
@@ -315,11 +326,19 @@ async function loadCloudData(user){
     authMsg.textContent="";
   }catch(e){
     cloudReady=false;
-    authMsg.textContent=T("authCloudError");
     console.error("TEMO WEIGHT cloud error",e);
+    if(e&&e.code==="permission-denied"){
+      authMsg.textContent="წვდომა შეზღუდულია. შესაძლოა ანგარიში დაბლოკილია.";
+      authMsg.style.color="#ef4d5a";
+      authGate.classList.add("show");
+      await auth.signOut();
+    }else{
+      authMsg.textContent=T("authCloudError");
+      authGate.classList.add("show");
+    }
   }finally{
     cloudBusy=false;
-    authGate.classList.remove("show");
+    if(auth.currentUser)authGate.classList.remove("show");
   }
 }
 authSwitch.addEventListener("click",e=>{e.preventDefault();setAuthMode(authMode==="login"?"register":"login")});
