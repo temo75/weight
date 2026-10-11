@@ -2,15 +2,33 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    function isAdmin() {
+      return request.auth != null
+        && request.auth.token.email == "temo75elia@gmail.com";
+    }
 
     match /users/{userId} {
-      allow read: if request.auth != null
-                 && (
-                   request.auth.uid == userId
-                   || request.auth.token.email == "temo75elia@gmail.com"
-                 );
-      allow write: if request.auth != null
-                  && request.auth.uid == userId;
+      allow read: if isAdmin()
+        || (request.auth != null
+          && request.auth.uid == userId
+          && resource.data.blocked != true);
+
+      allow create: if request.auth != null
+        && request.auth.uid == userId
+        && request.resource.data.blocked != true;
+
+      allow update: if (
+          request.auth != null
+          && request.auth.uid == userId
+          && resource.data.blocked != true
+          && request.resource.data.blocked != true
+        ) || (
+          isAdmin()
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['blocked', 'blockedAt', 'blockedBy'])
+        );
+
+      allow delete: if isAdmin();
     }
   }
 }
