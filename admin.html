@@ -69,11 +69,12 @@ button{border:0;border-radius:12px;padding:12px 15px;cursor:pointer;font-weight:
 <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-functions-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore-compat.js"></script>
 <script>
 const firebaseConfig={apiKey:"AIzaSyCOsRuJE3i5G1GWe99tPZSj5zOURwa4Kms",authDomain:"temo-50.firebaseapp.com",databaseURL:"https://temo-50-default-rtdb.europe-west1.firebasedatabase.app",projectId:"temo-50",storageBucket:"temo-50.firebasestorage.app",messagingSenderId:"147888227478",appId:"1:147888227478:web:0f7f0808d508d113116eb7"};
 const ADMIN_EMAIL="temo75elia@gmail.com";
 firebase.initializeApp(firebaseConfig);
-const auth=firebase.auth();
+const auth=firebase.auth(),db=firebase.firestore();
 const functions=firebase.app().functions("europe-west1");
 const bootstrapAdmin=functions.httpsCallable("bootstrapAdmin");
 const adminListUsers=functions.httpsCallable("adminListUsers");
@@ -116,13 +117,22 @@ async function loadUsers(){
   $("status").textContent="მომხმარებლები იტვირთება...";
   $("refresh").disabled=true;
   try{
-    const res=await adminListUsers();
-    users=Array.isArray(res.data.users)?res.data.users:[];
+    try{
+      const res=await adminListUsers();
+      users=Array.isArray(res.data.users)?res.data.users:[];
+      $("status").textContent="მზადაა · Firebase Authentication · სულ: "+(res.data.total??users.length);
+    }catch(functionError){
+      console.warn("Admin list function unavailable; using Firestore profile list",functionError);
+      const snap=await db.collection("users").get();
+      users=snap.docs.map(d=>({uid:d.id,...(d.data()||{}),disabled:false,emailVerified:false}));
+      users=users.filter(u=>u.email);
+      $("status").textContent="მომხმარებლების სია ჩაიტვირთა Firestore-იდან. დაბლოკვა/წაშლის მოქმედებისთვის სერვერული ფუნქციები უნდა მუშაობდეს.";
+    }
     users.sort((a,b)=>String(a.email||"").localeCompare(String(b.email||"")));
     render();
-    $("status").textContent="მზადაა · სულ: "+(res.data.total??users.length);
-  }catch(e){ $("status").textContent="ვერ ჩაიტვირთა: "+errorText(e); }
-  finally{$("refresh").disabled=false;}
+  }catch(e){
+    $("status").textContent="მომხმარებლები ვერ ჩაიტვირთა: "+errorText(e);
+  }finally{$("refresh").disabled=false;}
 }
 async function userAction(action,uid){
   if(busy)return;
