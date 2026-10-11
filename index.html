@@ -309,8 +309,7 @@ async function loadCloudData(user){
         records=[];
         settings={goal:null,height:null};
         saveLocal();
-        authMsg.textContent="ეს ანგარიში ადმინისტრატორის მიერ დაბლოკილია.";
-        authMsg.style.color="#ef4d5a";
+        sessionStorage.setItem("temo_weight_blocked_notice","⛔ ეს ანგარიში დაბლოკილია ადმინისტრატორის მიერ. შესვლა აკრძალულია.");
         authGate.classList.add("show");
         await auth.signOut();
         return;
@@ -328,8 +327,7 @@ async function loadCloudData(user){
     cloudReady=false;
     console.error("TEMO WEIGHT cloud error",e);
     if(e&&e.code==="permission-denied"){
-      authMsg.textContent="წვდომა შეზღუდულია. შესაძლოა ანგარიში დაბლოკილია.";
-      authMsg.style.color="#ef4d5a";
+      sessionStorage.setItem("temo_weight_blocked_notice","⛔ შესვლა აკრძალულია. ანგარიში შესაძლოა ადმინისტრატორის მიერ იყოს დაბლოკილი.");
       authGate.classList.add("show");
       await auth.signOut();
     }else{
@@ -352,6 +350,12 @@ auth.onAuthStateChanged(async user=>{
     cloudReady=false;
     authGate.classList.add("show");
     setAuthMode("login");
+    const blockedNotice=sessionStorage.getItem("temo_weight_blocked_notice");
+    if(blockedNotice){
+      authMsg.textContent=blockedNotice;
+      authMsg.style.color="#ef4d5a";
+      sessionStorage.removeItem("temo_weight_blocked_notice");
+    }
     return;
   }
   await loadCloudData(user);
