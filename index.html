@@ -347,16 +347,16 @@ async function loadCloudData(user){
     cloudReady=false;
     console.error("TEMO WEIGHT cloud error",e);
     if(e&&e.code==="permission-denied"){
-      sessionStorage.setItem("temo_weight_blocked_notice","⛔ შესვლა აკრძალულია. ანგარიში შესაძლოა ადმინისტრატორის მიერ იყოს დაბლოკილი.");
+      authMsg.textContent="Firebase Firestore-ზე წვდომა აკრძალულია. ეს ავტომატურად არ ნიშნავს, რომ ანგარიში დაბლოკილია. Firebase Console-ში უნდა გამოქვეყნდეს weight პროექტის ახალი firestore.rules წესები.";
+      authMsg.style.color="#ef4d5a";
       authGate.classList.add("show");
-      await auth.signOut();
     }else{
-      authMsg.textContent=T("authCloudError");
+      authMsg.textContent=(T("authCloudError")||"Cloud sync error")+" ("+(e&&e.code?e.code:"unknown")+"): "+(e&&e.message?e.message:"");
       authGate.classList.add("show");
     }
   }finally{
     cloudBusy=false;
-    if(auth.currentUser)authGate.classList.remove("show");
+    if(auth.currentUser&&cloudReady)authGate.classList.remove("show");
   }
 }
 authSwitch.addEventListener("click",e=>{e.preventDefault();setAuthMode(authMode==="login"?"register":"login")});
