@@ -8,10 +8,11 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
+      // Users must be able to read their own profile so the app can
+      // distinguish a real blocked flag from a Firestore permission error.
+      // Blocked users still cannot update their profile (see update rule).
       allow read: if isAdmin()
-        || (request.auth != null
-          && request.auth.uid == userId
-          && resource.data.blocked != true);
+        || (request.auth != null && request.auth.uid == userId);
 
       allow create: if request.auth != null
         && request.auth.uid == userId
