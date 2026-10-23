@@ -179,11 +179,15 @@ let currentUser=null;
 let authMode="login";
 let cloudReady=false;
 let cloudBusy=false;
-function saveAll(){
+async function saveAll(){
   saveLocal();
-  if(currentUser&&!cloudBusy){
-    db.collection("users").doc(currentUser.uid).set({email:currentUser.email||"",records,settings,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true}).catch(()=>{});
+  if(!currentUser || !cloudReady || cloudBusy){
+    throw new Error("Cloud sync is not ready. Please wait for account data to finish loading and try again.");
   }
+  await db.collection("users").doc(currentUser.uid).set(
+    {email:currentUser.email||"",records,settings,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},
+    {merge:true}
+  );
 }
 function setChange(el,n){el.textContent=n===null?"—":signed(n);el.className="value "+(n===null?"":n<0?"green":n>0?"red":"")}
 function streakCount(){if(!records.length)return 0;let n=0,d=new Date();d.setHours(12,0,0,0);for(;;){const s=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");if(records.some(r=>r.date===s)){n++;d.setDate(d.getDate()-1)}else break}return n}
@@ -238,13 +242,29 @@ historyDrawer.addEventListener("touchend",e=>{if(!historyTouchX)return;const dx=
 let dataTouchX=0,dataTouchY=0;
 dataDrawer.addEventListener("touchstart",e=>{if(e.touches.length===1){dataTouchX=e.touches[0].clientX;dataTouchY=e.touches[0].clientY}},{passive:true});
 dataDrawer.addEventListener("touchend",e=>{if(!dataTouchX)return;const dx=e.changedTouches[0].clientX-dataTouchX,dy=e.changedTouches[0].clientY-dataTouchY;dataTouchX=0;dataTouchY=0;if(dx<-55&&Math.abs(dx)>Math.abs(dy)*1.2)setDataDrawer(false)},{passive:true});
-$("saveBtn").onclick=()=>{
+$("saveBtn").onclick=async()=>{
  const raw=String($("weightInput").value||"").trim(),w=Number(raw.replace(",","."));if(!/^\d{1,3}(?:[.,]\d{1,2})?$/.test(raw)||!Number.isFinite(w)||w<=0||w>500){$("weightInput").focus();return}
- const now=new Date(),d=today(),hh=String(now.getHours()).padStart(2,"0"),mm=String(now.getMinutes()).padStart(2,"0"),time=hh+":"+mm,r=records.find(x=>x.date===d);if(r){r.weight=w;r.weightRaw=raw;r.time=time}else records.push({date:d,weight:w,weightRaw:raw,time});
- records.sort((a,b)=>a.date.localeCompare(b.date));saveAll();$("weightInput").value="";render()
+ if(!currentUser||!cloudReady||cloudBusy){alert("ანგარიშის სინქრონიზაცია ჯერ მზად არ არის. მოიცადე რამდენიმე წამი და სცადე თავიდან.");return}
+ const now=new Date(),d=today(),hh=String(now.getHours()).padStart(2,"0"),mm=String(now.getMinutes()).padStart(2,"0"),time=hh+":"+mm;
+ const previous=records.find(x=>x.date===d);
+ const oldRecords=records.map(x=>({...x}));
+ if(previous){previous.weight=w;previous.weightRaw=raw;previous.time=time}else records.push({date:d,weight:w,weightRaw:raw,time});
+ records.sort((a,b)=>a.date.localeCompare(b.date));
+ const saveButton=$("saveBtn");saveButton.disabled=true;
+ try{
+   await saveAll();
+   $("weightInput").value="";
+   render();
+ }catch(e){
+   records=oldRecords;
+   saveLocal();
+   render();
+   alert("წონა Firebase-ში ვერ შეინახა. ჩანაწერი არ დადასტურდა. შეცდომა: "+(e&&e.code?e.code+" — ":"")+(e&&e.message?e.message:"უცნობი შეცდომა"));
+   console.error("TEMO WEIGHT save error",e);
+ }finally{saveButton.disabled=false}
 };
-$("settingsBtn").onclick=()=>{const g=Number($("goalInput").value);settings.goal=g>0?g:null;saveAll();render()};
-$("heightSettingsBtn").onclick=()=>{const h=Number($("heightInput").value);if(h>=100&&h<=250){settings.height=h;saveAll();render()}};
+$("settingsBtn").onclick=async()=>{const g=Number($("goalInput").value),oldSettings={...settings};settings.goal=g>0?g:null;try{await saveAll();render()}catch(e){settings=oldSettings;saveLocal();alert("პარამეტრები Firebase-ში ვერ შეინახა. სცადე თავიდან.");console.error("TEMO WEIGHT settings save error",e)}};
+$("heightSettingsBtn").onclick=async()=>{const h=Number($("heightInput").value);if(h>=100&&h<=250){const oldSettings={...settings};settings.height=h;try{await saveAll();render()}catch(e){settings=oldSettings;saveLocal();alert("სიმაღლე Firebase-ში ვერ შეინახა. სცადე თავიდან.");console.error("TEMO WEIGHT height save error",e)}}};
 $("history").onclick=e=>{const b=e.target.closest("[data-del]");if(!b)return;if(confirm(T("deleteOne"))){records=records.filter(r=>r.date!==b.dataset.del);saveAll();render()}};
 document.querySelectorAll("[data-range]").forEach(b=>b.onclick=()=>{range=b.dataset.range;document.querySelectorAll("[data-range]").forEach(x=>x.classList.remove("active"));b.classList.add("active");draw()});
 $("langBtn").onclick=()=>{lang=lang==="ka"?"en":lang==="en"?"el":"ka";localStorage.setItem("temo_weight_lang",lang);applyLanguage()};if($("authLangBtn"))$("authLangBtn").onclick=()=>{lang=lang==="ka"?"en":lang==="en"?"el":"ka";localStorage.setItem("temo_weight_lang",lang);applyLanguage()};
