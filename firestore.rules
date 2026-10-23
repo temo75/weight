@@ -7,27 +7,31 @@ service cloud.firestore {
         && request.auth.token.email == "temo75elia@gmail.com";
     }
 
+    function notBlocked(data) {
+      return !('blocked' in data) || data.blocked != true;
+    }
+
     match /users/{userId} {
-      // Users must be able to read their own profile so the app can
-      // distinguish a real blocked flag from a Firestore permission error.
-      // Blocked users still cannot update their profile (see update rule).
       allow read: if isAdmin()
         || (request.auth != null && request.auth.uid == userId);
 
       allow create: if request.auth != null
         && request.auth.uid == userId
-        && request.resource.data.blocked != true;
+        && notBlocked(request.resource.data);
 
       allow update: if (
-          request.auth != null
-          && request.auth.uid == userId
-          && resource.data.blocked != true
-          && request.resource.data.blocked != true
-        ) || (
-          isAdmin()
-          && request.resource.data.diff(resource.data).affectedKeys()
-            .hasOnly(['blocked', 'blockedAt', 'blockedBy', 'records', 'settings', 'profileDeleted'])
-        );
+        request.auth != null
+        && request.auth.uid == userId
+        && notBlocked(resource.data)
+        && notBlocked(request.resource.data)
+      ) || (
+        isAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly([
+            'blocked', 'blockedAt', 'blockedBy',
+            'records', 'settings', 'profileDeleted'
+          ])
+      );
 
       allow delete: if isAdmin();
     }
