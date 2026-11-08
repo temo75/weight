@@ -141,6 +141,21 @@ function showUserDetail(u){
   $("closeUserDetail").onclick=closeDetail;
   $("closeUserDetailBottom").onclick=closeDetail;
   $("detailBackdrop").onclick=closeDetail;
+
+  // დახურვა თითის მარცხნივ გასმით
+  let swipeStartX=0,swipeStartY=0;
+  d.style.touchAction="pan-y";
+  d.ontouchstart=e=>{
+    const t=e.changedTouches[0];
+    swipeStartX=t.clientX;
+    swipeStartY=t.clientY;
+  };
+  d.ontouchend=e=>{
+    const t=e.changedTouches[0];
+    const dx=t.clientX-swipeStartX;
+    const dy=t.clientY-swipeStartY;
+    if(dx < -70 && Math.abs(dx)>Math.abs(dy)*1.2) closeDetail();
+  };
 }
 async function loadUsers(){
   $("status").textContent="მომხმარებლები იტვირთება...";
