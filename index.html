@@ -274,7 +274,7 @@ function showWeightFeedback(change){
   const icons=["⭐","🌟","🌸","🌼","✨","💐"];
   for(let i=0;i<34;i++){const p=document.createElement("span");p.className="weight-fall";p.textContent=icons[i%icons.length];p.style.setProperty("--x",(Math.random()*100)+"%");p.style.setProperty("--size",(18+Math.random()*23)+"px");p.style.setProperty("--duration",(2.4+Math.random()*2.1)+"s");p.style.setProperty("--delay",(Math.random()*.9)+"s");p.style.setProperty("--drift",((Math.random()-.5)*150)+"px");box.appendChild(p)}
  }
- document.body.appendChild(box);setTimeout(()=>box.remove(),change<0?4000:2200);
+ document.body.appendChild(box);setTimeout(()=>box.remove(),change<0?6000:2200);
 }
 
 $("saveBtn").onclick=async()=>{
