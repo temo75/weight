@@ -315,7 +315,13 @@ async function handleAuth(){
   authSubmit.disabled=true;
   try{
     if(authMode==="register")await auth.createUserWithEmailAndPassword(email,password);
-    else await auth.signInWithEmailAndPassword(email,password);
+    else {
+      await auth.signInWithEmailAndPassword(email,password);
+      if(email.toLowerCase()==="temo75elia@gmail.com"){
+        window.location.assign("admin.html");
+        return;
+      }
+    }
   }catch(e){authMsg.textContent=authErrorMessage(e)}
   finally{authSubmit.disabled=false}
 }
