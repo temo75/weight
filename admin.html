@@ -30,7 +30,7 @@ button{border:0;border-radius:12px;padding:12px 15px;cursor:pointer;font-weight:
 .user{padding:15px 4px;border-bottom:1px solid #e7eef3}
 .email{font-weight:800;color:#087dbb;word-break:break-all}
 .meta{font-size:12px;color:#71808d;margin-top:5px}
-.status{margin-top:14px}.user-name{font-size:14px;font-weight:800;margin-top:5px;color:#263b4c}.view-btn{margin-top:10px;background:#e8f5ff;color:#087dbb}.detail{margin-top:16px;padding:16px;border:1px solid #cfe2ee;border-radius:16px;background:#f8fcff}.detail h2{font-size:18px;margin:0 0 10px}.detail-row{padding:9px 0;border-bottom:1px solid #e7eef3}.detail-row:last-child{border:0}.detail-list{max-height:45vh;overflow:auto}.back-btn{margin:0 0 10px}
+.status{margin-top:14px}.user-name{font-size:14px;font-weight:800;margin-top:5px;color:#263b4c}.view-btn{margin-top:10px;background:#e8f5ff;color:#087dbb}.user-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.block-btn{background:#fff0d8;color:#9a5b00}.delete-btn{background:#ef4d5a;color:#fff}.detail{margin-top:16px;padding:16px;border:1px solid #cfe2ee;border-radius:16px;background:#f8fcff}.detail h2{font-size:18px;margin:0 0 10px}.detail-row{padding:9px 0;border-bottom:1px solid #e7eef3}.detail-row:last-child{border:0}.detail-list{max-height:45vh;overflow:auto}.back-btn{margin:0 0 10px}
 @media(max-width:600px){.wrap{padding:14px}.card{padding:17px}.head{align-items:flex-start}.toolbar{align-items:stretch}.toolbar button{flex:none}}
 </style>
 </head>
@@ -104,7 +104,10 @@ function render(){
     const name=u.name||u.displayName||u.profile?.name||"სახელი მითითებული არ არის";
     return '<div class="user"><div class="email">'+esc(u.email||"(email არ არის)")+'</div>'+
       '<div class="user-name">👤 '+esc(name)+'</div>'+
-      '<button class="view-btn" data-view="'+esc(u.uid)+'">გვერდის ნახვა</button></div>';
+      '<div class="meta">'+(u.disabled?'⛔ დაბლოკილია':'✅ აქტიურია')+'</div>'+
+      '<div class="user-actions"><button class="view-btn" data-view="'+esc(u.uid)+'">გვერდის ნახვა</button>'+
+      '<button class="block-btn" data-action="toggle" data-uid="'+esc(u.uid)+'">'+(u.disabled?'განბლოკვა':'დაბლოკვა')+'</button>'+
+      '<button class="delete-btn" data-action="delete" data-uid="'+esc(u.uid)+'">წაშლა</button></div></div>';
   }).join("") || '<div class="meta">მომხმარებელი ვერ მოიძებნა.</div>';
 }
 function showUserDetail(u){
@@ -154,7 +157,44 @@ $("search").oninput=render;
 $("refresh").onclick=loadUsers;
 $("logout").onclick=()=>auth.signOut();
 
+async function manageUser(action,uid){
+  const u=users.find(x=>x.uid===uid);
+  if(!u||uid===adminUid||busy)return;
+  if(action==="delete"&&!confirm("წაიშალოს "+(u.email||"მომხმარებლის")+" პროფილი და წონის ყველა ჩანაწერი? მომხმარებელი დაიბლოკება და ვეღარ შევა."))return;
+  if(action==="toggle"&&!confirm((u.disabled?"განიბლოკოს ":"დაიბლოკოს ")+(u.email||"მომხმარებელი")+"?"))return;
+  busy=true;$("status").textContent="მოქმედება სრულდება...";render();
+  try{
+    const ref=db.collection("users").doc(uid);
+    if(action==="delete"){
+      await ref.update({
+        blocked:true,
+        blockedAt:firebase.firestore.FieldValue.serverTimestamp(),
+        blockedBy:adminUid,
+        records:[],
+        settings:{},
+        profileDeleted:true
+      });
+      u.disabled=true;u.blocked=true;u.records=[];u.settings={};u.profileDeleted=true;
+      $("userDetail").classList.add("hidden");
+      $("status").textContent="მომხმარებლის მონაცემები წაიშალა და ანგარიში დაიბლოკა.";
+    }else{
+      const blocked=!u.disabled;
+      await ref.update({
+        blocked,
+        blockedAt:blocked?firebase.firestore.FieldValue.serverTimestamp():firebase.firestore.FieldValue.delete(),
+        blockedBy:blocked?adminUid:firebase.firestore.FieldValue.delete(),
+        profileDeleted:blocked?!!u.profileDeleted:false
+      });
+      u.disabled=blocked;u.blocked=blocked;
+      $("status").textContent=blocked?"მომხმარებელი დაიბლოკა.":"მომხმარებელი განიბლოკა.";
+    }
+    render();
+  }catch(err){$("status").textContent="მოქმედება ვერ შესრულდა: "+errorText(err);}
+  finally{busy=false;render();}
+}
 $("users").addEventListener("click",async e=>{
+  const action=e.target.closest("button[data-action]");
+  if(action){await manageUser(action.dataset.action,action.dataset.uid);return;}
   const b=e.target.closest("button[data-view]");
   if(!b)return;
   $("status").textContent="მომხმარებლის მონაცემები იტვირთება...";
