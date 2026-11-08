@@ -272,7 +272,7 @@ function showWeightFeedback(change){
  box.appendChild(msg);
  if(change<0){
   const icons=["⭐","🌟","🌸","🌼","🌺","✨","💐"];
-  for(let i=0;i<60;i++){const p=document.createElement("span");p.className="weight-fall";p.textContent=icons[i%icons.length];p.style.setProperty("--x",(Math.random()*100)+"%");p.style.setProperty("--size",(20+Math.random()*25)+"px");p.style.setProperty("--duration","5.4s");p.style.setProperty("--delay",(Math.random()*.6)+"s");p.style.setProperty("--drift",((Math.random()-.5)*180)+"px");box.appendChild(p)}
+  for(let i=0;i<60;i++){const p=document.createElement("span");p.className="weight-fall";p.textContent=icons[i%icons.length];p.style.setProperty("--x",(Math.random()*100)+"%");p.style.setProperty("--size",(20+Math.random()*25)+"px");p.style.setProperty("--duration",(3.6+Math.random()*2.4)+"s");p.style.setProperty("--delay",(Math.random()*2.4)+"s");p.style.setProperty("--drift",((Math.random()-.5)*280)+"px");box.appendChild(p)}
  }
  document.body.appendChild(box);setTimeout(()=>box.remove(),change<0?6200:2200);
 }
