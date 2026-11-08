@@ -84,11 +84,12 @@ button{border:0;border-radius:12px;padding:12px 15px;cursor:pointer;font-weight:
 <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-functions-compat.js"></script>
 <script>
 const firebaseConfig={apiKey:"AIzaSyCOsRuJE3i5G1GWe99tPZSj5zOURwa4Kms",authDomain:"temo-50.firebaseapp.com",databaseURL:"https://temo-50-default-rtdb.europe-west1.firebasedatabase.app",projectId:"temo-50",storageBucket:"temo-50.firebasestorage.app",messagingSenderId:"147888227478",appId:"1:147888227478:web:0f7f0808d508d113116eb7"};
 const ADMIN_EMAIL="temo75elia@gmail.com";
 firebase.initializeApp(firebaseConfig);
-const auth=firebase.auth(),db=firebase.firestore();
+const auth=firebase.auth(),db=firebase.firestore(),functions=firebase.app().functions("europe-west1");
 const $=id=>document.getElementById(id);
 let users=[];
 
@@ -192,23 +193,20 @@ $("logout").onclick=()=>auth.signOut();
 async function manageUser(action,uid){
   const u=users.find(x=>x.uid===uid);
   if(!u||uid===adminUid||busy)return;
-  if(action==="delete"&&!confirm("წაიშალოს "+(u.email||"მომხმარებლის")+" პროფილი და წონის ყველა ჩანაწერი? მომხმარებელი დაიბლოკება და ვეღარ შევა."))return;
+  if(action==="delete"&&!confirm("სრულად წაიშალოს "+(u.email||"მომხმარებლის")+" ანგარიში და ყველა მონაცემი? შემდეგ მას იმავე email-ით თავიდან რეგისტრაცია შეეძლება."))return;
   if(action==="toggle"&&!confirm((u.disabled?"განიბლოკოს ":"დაიბლოკოს ")+(u.email||"მომხმარებელი")+"?"))return;
   busy=true;$("status").textContent="მოქმედება სრულდება...";render();
   try{
     const ref=db.collection("users").doc(uid);
     if(action==="delete"){
-      await ref.update({
-        blocked:true,
-        blockedAt:firebase.firestore.FieldValue.serverTimestamp(),
-        blockedBy:adminUid,
-        records:[],
-        settings:{},
-        profileDeleted:true
-      });
-      u.disabled=true;u.blocked=true;u.records=[];u.settings={};u.profileDeleted=true;
+      const bootstrap=functions.httpsCallable("bootstrapAdmin");
+      await bootstrap({});
+      await auth.currentUser.getIdToken(true);
+      const deleteUser=functions.httpsCallable("adminDeleteUser");
+      await deleteUser({uid});
+      users=users.filter(x=>x.uid!==uid);
       $("userDetail").classList.remove("open");$("userDetail").setAttribute("aria-hidden","true");$("detailBackdrop").classList.remove("open");document.body.style.overflow="";
-      $("status").textContent="მომხმარებლის მონაცემები წაიშალა და ანგარიში დაიბლოკა.";
+      $("status").textContent="მომხმარებლის ანგარიში და Firestore-ის მონაცემები სრულად წაიშალა. იგივე email-ით ხელახლა რეგისტრაცია შესაძლებელია.";
     }else{
       const blocked=!u.disabled;
       await ref.update({
