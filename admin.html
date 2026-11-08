@@ -139,6 +139,7 @@ function showUserDetail(u){
     '<div class="detail-list">'+(records.map(r=>'<div class="detail-row"><b>'+esc(r.date||"—")+'</b> · '+esc(r.weightRaw||r.weight||"—")+' კგ</div>').join("")||'<div class="meta">წონის ჩანაწერები არ არის.</div>')+'</div>'+'<button class="detail-close-bottom" id="closeUserDetailBottom">← უკან</button>';
   const closeDetail=()=>{d.classList.remove("open");d.setAttribute("aria-hidden","true");$("detailBackdrop").classList.remove("open");document.body.style.overflow="";};
   $("closeUserDetail").onclick=closeDetail;
+  $("closeUserDetailBottom").onclick=closeDetail;
   $("detailBackdrop").onclick=closeDetail;
 }
 async function loadUsers(){
