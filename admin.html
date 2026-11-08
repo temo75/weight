@@ -30,7 +30,7 @@ button{border:0;border-radius:12px;padding:12px 15px;cursor:pointer;font-weight:
 .user{padding:15px 4px;border-bottom:1px solid #e7eef3}
 .email{font-weight:800;color:#087dbb;word-break:break-all}
 .meta{font-size:12px;color:#71808d;margin-top:5px}
-.status{margin-top:14px}.user-name{font-size:14px;font-weight:800;margin-top:5px;color:#263b4c}.view-btn{margin-top:10px;background:#e8f5ff;color:#087dbb}.user-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.block-btn{background:#fff0d8;color:#9a5b00}.delete-btn{background:#ef4d5a;color:#fff}.detail{margin-top:16px;padding:16px;border:1px solid #cfe2ee;border-radius:16px;background:#f8fcff}.detail h2{font-size:18px;margin:0 0 10px}.detail-row{padding:9px 0;border-bottom:1px solid #e7eef3}.detail-row:last-child{border:0}.detail-list{max-height:45vh;overflow:auto}.back-btn{margin:0 0 10px}.usage-card{border:1px solid #b9e2f7;background:linear-gradient(135deg,#f3fbff,#fff)}.usage-card h2{margin:0 0 8px;font-size:19px;color:#087dbb}.usage-card p{margin:7px 0;color:#40566a;line-height:1.5}.usage-quotas{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.usage-quotas span{padding:8px 10px;border-radius:10px;background:#e8f5ff;color:#075b8f;font-size:13px;font-weight:800}.usage-link{display:inline-block;margin-top:5px;text-decoration:none}
+.status{margin-top:14px}.user-name{font-size:14px;font-weight:800;margin-top:5px;color:#263b4c}.view-btn{margin-top:10px;background:#e8f5ff;color:#087dbb}.user-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.block-btn{background:#fff0d8;color:#9a5b00}.delete-btn{background:#ef4d5a;color:#fff}.detail{position:fixed;z-index:1002;left:0;top:0;width:min(460px,92vw);height:100dvh;margin:0;padding:22px 18px calc(22px + env(safe-area-inset-bottom));border:0;border-radius:0 20px 20px 0;background:#f8fcff;box-shadow:12px 0 35px #10203330;overflow-y:auto;transform:translateX(-105%);transition:transform .28s ease;visibility:hidden}.detail.open{transform:translateX(0);visibility:visible}.detail h2{font-size:18px;margin:0 0 10px}.detail-row{padding:9px 0;border-bottom:1px solid #e7eef3}.detail-row:last-child{border:0}.detail-list{max-height:none;overflow:visible}.detail-backdrop{position:fixed;inset:0;z-index:1001;background:#07182788;opacity:0;visibility:hidden;transition:opacity .28s ease}.detail-backdrop.open{opacity:1;visibility:visible}.back-btn{margin:0 0 10px}.usage-card{border:1px solid #b9e2f7;background:linear-gradient(135deg,#f3fbff,#fff)}.usage-card h2{margin:0 0 8px;font-size:19px;color:#087dbb}.usage-card p{margin:7px 0;color:#40566a;line-height:1.5}.usage-quotas{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.usage-quotas span{padding:8px 10px;border-radius:10px;background:#e8f5ff;color:#075b8f;font-size:13px;font-weight:800}.usage-link{display:inline-block;margin-top:5px;text-decoration:none}
 @media(max-width:600px){.wrap{padding:14px}.card{padding:17px}.head{align-items:flex-start}.toolbar{align-items:stretch}.toolbar button{flex:none}}
 </style>
 </head>
@@ -74,7 +74,8 @@ button{border:0;border-radius:12px;padding:12px 15px;cursor:pointer;font-weight:
 </div>
 <div class="count">სულ მომხმარებელი: <span id="total">0</span></div>
 <div id="users"></div>
-<div id="userDetail" class="detail hidden"></div>
+<div id="detailBackdrop" class="detail-backdrop" aria-hidden="true"></div>
+<div id="userDetail" class="detail" aria-hidden="true"></div>
 <div id="status" class="meta status"></div>
 </section>
 </main>
@@ -127,7 +128,7 @@ function showUserDetail(u){
   const d=$("userDetail"),records=Array.isArray(u.records)?u.records.slice().sort((a,b)=>String(b.date||"").localeCompare(String(a.date||""))):[];
   const settings=u.settings&&typeof u.settings==="object"?u.settings:{};
   const name=u.name||u.displayName||u.profile?.name||"სახელი მითითებული არ არის";
-  d.classList.remove("hidden");
+  d.classList.add("open");d.setAttribute("aria-hidden","false");$("detailBackdrop").classList.add("open");document.body.style.overflow="hidden";
   d.innerHTML='<button class="muted back-btn" id="closeUserDetail">← მომხმარებლების სია</button>'+
     '<h2>მომხმარებლის გვერდი</h2>'+
     '<div class="detail-row"><b>სახელი:</b> '+esc(name)+'</div>'+
@@ -136,7 +137,9 @@ function showUserDetail(u){
     '<div class="detail-row"><b>სიმაღლე:</b> '+(settings.height?esc(settings.height)+" სმ":"—")+'</div>'+
     '<div class="detail-row"><b>ჩანაწერები:</b> '+records.length+'</div>'+
     '<div class="detail-list">'+(records.map(r=>'<div class="detail-row"><b>'+esc(r.date||"—")+'</b> · '+esc(r.weightRaw||r.weight||"—")+' კგ</div>').join("")||'<div class="meta">წონის ჩანაწერები არ არის.</div>')+'</div>';
-  $("closeUserDetail").onclick=()=>d.classList.add("hidden");
+  const closeDetail=()=>{d.classList.remove("open");d.setAttribute("aria-hidden","true");$("detailBackdrop").classList.remove("open");document.body.style.overflow="";};
+  $("closeUserDetail").onclick=closeDetail;
+  $("detailBackdrop").onclick=closeDetail;
 }
 async function loadUsers(){
   $("status").textContent="მომხმარებლები იტვირთება...";
@@ -188,7 +191,7 @@ async function manageUser(action,uid){
         profileDeleted:true
       });
       u.disabled=true;u.blocked=true;u.records=[];u.settings={};u.profileDeleted=true;
-      $("userDetail").classList.add("hidden");
+      $("userDetail").classList.remove("open");$("userDetail").setAttribute("aria-hidden","true");$("detailBackdrop").classList.remove("open");document.body.style.overflow="";
       $("status").textContent="მომხმარებლის მონაცემები წაიშალა და ანგარიში დაიბლოკა.";
     }else{
       const blocked=!u.disabled;
