@@ -29,6 +29,16 @@
 .data-entry-trigger:hover{transform:translateY(-2px);box-shadow:inset 0 2px 3px #ffffff8a,inset 0 -8px 16px #0009,0 0 0 2px #5dcfff,0 0 24px #00aaffbb,0 14px 28px #0009;}
 .data-entry-trigger:active{transform:translateY(1px) scale(.99);}
 @media(max-width:420px){.data-entry-trigger{min-height:100px;padding:14px 15px;gap:10px}.data-entry-trigger .data-entry-clipboard{width:56px;height:56px;font-size:30px}.data-entry-arrow{font-size:32px}}
+
+.weight-feedback{position:fixed;inset:0;z-index:300;pointer-events:none;overflow:hidden;display:grid;place-items:center}
+.weight-feedback-message{position:relative;z-index:2;padding:15px 24px;border-radius:22px;background:rgba(5,24,48,.88);border:1px solid #5acbff;color:#fff;font-size:clamp(22px,6vw,32px);font-weight:1000;text-align:center;text-shadow:0 0 14px #29bfff;box-shadow:0 0 30px #159dff88;animation:weightPop .65s cubic-bezier(.2,1.5,.4,1) both}
+.weight-feedback.sad .weight-feedback-message{border-color:#aab6c5;text-shadow:none;box-shadow:0 0 24px #8793a455}
+.weight-fall{position:absolute;top:-12vh;left:var(--x);font-size:var(--size);animation:weightRain var(--duration) linear var(--delay) forwards;filter:drop-shadow(0 0 8px #ffd45c)}
+.weight-feedback.sad .weight-fall{display:none}
+@keyframes weightRain{0%{transform:translate3d(0,-10vh,0) rotate(0deg);opacity:0}10%{opacity:1}100%{transform:translate3d(var(--drift),115vh,0) rotate(620deg);opacity:0}}
+@keyframes weightPop{0%{transform:scale(.45) translateY(25px);opacity:0}70%{transform:scale(1.08);opacity:1}100%{transform:scale(1);opacity:1}}
+@media(prefers-reduced-motion:reduce){.weight-fall,.weight-feedback-message{animation-duration:.01ms!important}}
+
 </style>
 
 </head>
@@ -255,11 +265,25 @@ historyDrawer.addEventListener("touchend",e=>{if(!historyTouchX)return;const dx=
 let dataTouchX=0,dataTouchY=0;
 dataDrawer.addEventListener("touchstart",e=>{if(e.touches.length===1){dataTouchX=e.touches[0].clientX;dataTouchY=e.touches[0].clientY}},{passive:true});
 dataDrawer.addEventListener("touchend",e=>{if(!dataTouchX)return;const dx=e.changedTouches[0].clientX-dataTouchX,dy=e.changedTouches[0].clientY-dataTouchY;dataTouchX=0;dataTouchY=0;if(dx<-55&&Math.abs(dx)>Math.abs(dy)*1.2)setDataDrawer(false)},{passive:true});
+
+function showWeightFeedback(change){
+ const box=document.createElement("div");box.className="weight-feedback"+(change>0?" sad":"");box.setAttribute("aria-hidden","true");
+ const msg=document.createElement("div");msg.className="weight-feedback-message";msg.textContent=change<0?"🎉 ყოჩაღ! წონა შემცირდა!":"😞 წონა მომატებულია";
+ box.appendChild(msg);
+ if(change<0){
+  const icons=["⭐","🌟","🌸","🌼","✨","💐"];
+  for(let i=0;i<34;i++){const p=document.createElement("span");p.className="weight-fall";p.textContent=icons[i%icons.length];p.style.setProperty("--x",(Math.random()*100)+"%");p.style.setProperty("--size",(18+Math.random()*23)+"px");p.style.setProperty("--duration",(2.4+Math.random()*2.1)+"s");p.style.setProperty("--delay",(Math.random()*.9)+"s");p.style.setProperty("--drift",((Math.random()-.5)*150)+"px");box.appendChild(p)}
+ }
+ document.body.appendChild(box);setTimeout(()=>box.remove(),change<0?5200:2200);
+}
+
 $("saveBtn").onclick=async()=>{
  const raw=String($("weightInput").value||"").trim(),w=Number(raw.replace(",","."));if(!/^\d{1,3}(?:[.,]\d{1,2})?$/.test(raw)||!Number.isFinite(w)||w<=0||w>500){$("weightInput").focus();return}
  if(!currentUser||!cloudReady||cloudBusy){alert("ანგარიშის სინქრონიზაცია ჯერ მზად არ არის. მოიცადე რამდენიმე წამი და სცადე თავიდან.");return}
  const now=new Date(),d=today(),hh=String(now.getHours()).padStart(2,"0"),mm=String(now.getMinutes()).padStart(2,"0"),time=hh+":"+mm;
  const previous=records.find(x=>x.date===d);
+ const comparison=records.filter(x=>x.date<d).sort((a,b)=>b.date.localeCompare(a.date))[0];
+ const weightChange=comparison?w-comparison.weight:0;
  const oldRecords=records.map(x=>({...x}));
  if(previous){previous.weight=w;previous.weightRaw=raw;previous.time=time}else records.push({date:d,weight:w,weightRaw:raw,time});
  records.sort((a,b)=>a.date.localeCompare(b.date));
@@ -268,6 +292,7 @@ $("saveBtn").onclick=async()=>{
    await saveAll();
    $("weightInput").value="";
    render();
+   if(comparison&&weightChange!==0)showWeightFeedback(weightChange);
  }catch(e){
    records=oldRecords;
    saveLocal();
