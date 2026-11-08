@@ -30,7 +30,7 @@ button{border:0;border-radius:12px;padding:12px 15px;cursor:pointer;font-weight:
 .user{padding:15px 4px;border-bottom:1px solid #e7eef3}
 .email{font-weight:800;color:#087dbb;word-break:break-all}
 .meta{font-size:12px;color:#71808d;margin-top:5px}
-.status{margin-top:14px}.user-name{font-size:14px;font-weight:800;margin-top:5px;color:#263b4c}.view-btn{margin-top:10px;background:#e8f5ff;color:#087dbb}.user-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.block-btn{background:#fff0d8;color:#9a5b00}.delete-btn{background:#ef4d5a;color:#fff}.detail{margin-top:16px;padding:16px;border:1px solid #cfe2ee;border-radius:16px;background:#f8fcff}.detail h2{font-size:18px;margin:0 0 10px}.detail-row{padding:9px 0;border-bottom:1px solid #e7eef3}.detail-row:last-child{border:0}.detail-list{max-height:45vh;overflow:auto}.back-btn{margin:0 0 10px}
+.status{margin-top:14px}.user-name{font-size:14px;font-weight:800;margin-top:5px;color:#263b4c}.view-btn{margin-top:10px;background:#e8f5ff;color:#087dbb}.user-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.block-btn{background:#fff0d8;color:#9a5b00}.delete-btn{background:#ef4d5a;color:#fff}.detail{margin-top:16px;padding:16px;border:1px solid #cfe2ee;border-radius:16px;background:#f8fcff}.detail h2{font-size:18px;margin:0 0 10px}.detail-row{padding:9px 0;border-bottom:1px solid #e7eef3}.detail-row:last-child{border:0}.detail-list{max-height:45vh;overflow:auto}.back-btn{margin:0 0 10px}.usage-card{border:1px solid #b9e2f7;background:linear-gradient(135deg,#f3fbff,#fff)}.usage-card h2{margin:0 0 8px;font-size:19px;color:#087dbb}.usage-card p{margin:7px 0;color:#40566a;line-height:1.5}.usage-quotas{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.usage-quotas span{padding:8px 10px;border-radius:10px;background:#e8f5ff;color:#075b8f;font-size:13px;font-weight:800}.usage-link{display:inline-block;margin-top:5px;text-decoration:none}
 @media(max-width:600px){.wrap{padding:14px}.card{padding:17px}.head{align-items:flex-start}.toolbar{align-items:stretch}.toolbar button{flex:none}}
 </style>
 </head>
@@ -53,6 +53,19 @@ button{border:0;border-radius:12px;padding:12px 15px;cursor:pointer;font-weight:
 </div>
 <button id="logout" class="muted">🚪 გასვლა</button>
 </div>
+
+<section class="card usage-card">
+<h2>Firestore-ის გამოყენება</h2>
+<p>ზუსტი მიმდინარე მაჩვენებლები იხილე Firebase Console-ში. ეს ბმული პროექტის Firestore Usage გვერდს ხსნის.</p>
+<div class="usage-quotas">
+<span>უფასო: 50,000 წაკითხვა/დღე</span>
+<span>20,000 ჩაწერა/დღე</span>
+<span>20,000 წაშლა/დღე</span>
+<span>1 GiB შენახვა</span>
+</div>
+<a class="primary usage-link" style="padding:12px 15px;border-radius:12px;color:#fff" href="https://console.firebase.google.com/project/temo-50/firestore/databases/-default-/usage/prev-24h" target="_blank" rel="noopener noreferrer">📊 ზუსტი მოხმარების ნახვა Firebase-ში</a>
+<p class="meta">პროექტი Spark უფასო გეგმაზეა. Spark-ზე კვოტის გადაჭარბებისას Firestore შეიძლება დროებით გაითიშოს; დამატებითი გადასახადი ავტომატურად არ ჩამოგეჭრებათ.</p>
+</section>
 
 <section class="card">
 <div class="toolbar">
