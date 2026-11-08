@@ -30,7 +30,7 @@ button{border:0;border-radius:12px;padding:12px 15px;cursor:pointer;font-weight:
 .user{padding:15px 4px;border-bottom:1px solid #e7eef3}
 .email{font-weight:800;color:#087dbb;word-break:break-all}
 .meta{font-size:12px;color:#71808d;margin-top:5px}
-.status{margin-top:14px}
+.status{margin-top:14px}.user-name{font-size:14px;font-weight:800;margin-top:5px;color:#263b4c}.view-btn{margin-top:10px;background:#e8f5ff;color:#087dbb}.detail{margin-top:16px;padding:16px;border:1px solid #cfe2ee;border-radius:16px;background:#f8fcff}.detail h2{font-size:18px;margin:0 0 10px}.detail-row{padding:9px 0;border-bottom:1px solid #e7eef3}.detail-row:last-child{border:0}.detail-list{max-height:45vh;overflow:auto}.back-btn{margin:0 0 10px}
 @media(max-width:600px){.wrap{padding:14px}.card{padding:17px}.head{align-items:flex-start}.toolbar{align-items:stretch}.toolbar button{flex:none}}
 </style>
 </head>
@@ -61,6 +61,7 @@ button{border:0;border-radius:12px;padding:12px 15px;cursor:pointer;font-weight:
 </div>
 <div class="count">სულ მომხმარებელი: <span id="total">0</span></div>
 <div id="users"></div>
+<div id="userDetail" class="detail hidden"></div>
 <div id="status" class="meta status"></div>
 </section>
 </main>
@@ -94,18 +95,32 @@ function render(){
   const q=$("search").value.trim().toLowerCase();
   const list=users.filter(u=>
     String(u.email||"").toLowerCase()!==ADMIN_EMAIL &&
-    String(u.email||"").toLowerCase().includes(q)
+    (String(u.email||"").toLowerCase().includes(q) ||
+     String(u.name||u.displayName||u.profile?.name||"").toLowerCase().includes(q))
   );
   const ordinaryUsers=users.filter(u=>String(u.email||"").toLowerCase()!==ADMIN_EMAIL);
   $("total").textContent=ordinaryUsers.length;
   $("users").innerHTML=list.map(u=>{
-    const self=u.uid===adminUid, disabled=!!u.disabled;
-    return '<div class="user" style="'+(disabled?'opacity:.7':'')+'"><div class="email">'+esc(u.email||"(email არ არის)")+'</div>'+
-      '<div class="meta">'+(disabled?'⛔ დაბლოკილია':'✅ აქტიურია')+' · '+(u.emailVerified?'ელფოსტა დადასტურებულია':'ელფოსტა დაუდასტურებელია')+'</div>'+
-      '<div class="actions" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">'+
-      '<button class="muted" data-action="toggle" data-uid="'+esc(u.uid)+'" '+(self?'disabled':'')+'>'+(disabled?'განბლოკვა':'დაბლოკვა')+'</button>'+
-      '<button style="background:#ef4d5a;color:white" data-action="delete" data-uid="'+esc(u.uid)+'" '+(self?'disabled':'')+'>წაშლა</button></div></div>';
+    const name=u.name||u.displayName||u.profile?.name||"სახელი მითითებული არ არის";
+    return '<div class="user"><div class="email">'+esc(u.email||"(email არ არის)")+'</div>'+
+      '<div class="user-name">👤 '+esc(name)+'</div>'+
+      '<button class="view-btn" data-view="'+esc(u.uid)+'">გვერდის ნახვა</button></div>';
   }).join("") || '<div class="meta">მომხმარებელი ვერ მოიძებნა.</div>';
+}
+function showUserDetail(u){
+  const d=$("userDetail"),records=Array.isArray(u.records)?u.records.slice().sort((a,b)=>String(b.date||"").localeCompare(String(a.date||""))):[];
+  const settings=u.settings&&typeof u.settings==="object"?u.settings:{};
+  const name=u.name||u.displayName||u.profile?.name||"სახელი მითითებული არ არის";
+  d.classList.remove("hidden");
+  d.innerHTML='<button class="muted back-btn" id="closeUserDetail">← მომხმარებლების სია</button>'+
+    '<h2>მომხმარებლის გვერდი</h2>'+
+    '<div class="detail-row"><b>სახელი:</b> '+esc(name)+'</div>'+
+    '<div class="detail-row"><b>ელფოსტა:</b> '+esc(u.email||"—")+'</div>'+
+    '<div class="detail-row"><b>მიზანი:</b> '+(settings.goal?esc(settings.goal)+" კგ":"—")+'</div>'+
+    '<div class="detail-row"><b>სიმაღლე:</b> '+(settings.height?esc(settings.height)+" სმ":"—")+'</div>'+
+    '<div class="detail-row"><b>ჩანაწერები:</b> '+records.length+'</div>'+
+    '<div class="detail-list">'+(records.map(r=>'<div class="detail-row"><b>'+esc(r.date||"—")+'</b> · '+esc(r.weightRaw||r.weight||"—")+' კგ</div>').join("")||'<div class="meta">წონის ჩანაწერები არ არის.</div>')+'</div>';
+  $("closeUserDetail").onclick=()=>d.classList.add("hidden");
 }
 async function loadUsers(){
   $("status").textContent="მომხმარებლები იტვირთება...";
@@ -116,39 +131,11 @@ async function loadUsers(){
     users=users.filter(u=>u.email);
     users.sort((a,b)=>String(a.email||"").localeCompare(String(b.email||"")));
     render();
-    $("status").textContent="სია ჩაიტვირთა · "+users.filter(u=>String(u.email||"").toLowerCase()!==ADMIN_EMAIL).length+" მომხმარებელი · უფასო Spark";
+    $("status").textContent="სია ჩაიტვირთა · "+users.filter(u=>String(u.email||"").toLowerCase()!==ADMIN_EMAIL).length+" მომხმარებელი · მხოლოდ ნახვა";
   }catch(e){
     $("status").textContent="სია ვერ ჩაიტვირთა: "+errorText(e);
   }finally{$("refresh").disabled=false;}
 }
-async function userAction(action,uid){
-  if(busy)return;
-  const u=users.find(x=>x.uid===uid); if(!u||uid===adminUid)return;
-  if(action==="delete"&&!confirm("გაიწმინდოს "+(u.email||"მომხმარებლის")+" წონის მონაცემები და აპში დაიბლოკოს? Firebase Authentication ანგარიში დარჩება."))return;
-  if(action==="toggle"&&!confirm((u.disabled?"განბლოკო ":"დაბლოკო ")+(u.email||"მომხმარებელი")+"?"))return;
-  busy=true; $("status").textContent="მოქმედება სრულდება...";
-  $("users").querySelectorAll("button").forEach(b=>b.disabled=true);
-  try{
-    const ref=db.collection("users").doc(uid);
-    if(action==="delete"){
-      await ref.delete();
-      u.disabled=true; u.records=[]; u.settings={}; u.profileDeleted=true;
-      $("status").textContent="მონაცემები გასუფთავდა და ანგარიში აპში დაიბლოკა. Firebase Authentication ანგარიში რჩება.";
-    }else{
-      const blocked=!u.disabled;
-      await ref.update({
-        blocked,
-        blockedAt: blocked ? firebase.firestore.FieldValue.serverTimestamp() : firebase.firestore.FieldValue.delete(),
-        blockedBy: blocked ? adminUid : firebase.firestore.FieldValue.delete()
-      });
-      u.disabled=blocked;
-      $("status").textContent=blocked?"მომხმარებელი დაიბლოკა.":"მომხმარებელი განიბლოკა.";
-    }
-    render();
-  }catch(e){$("status").textContent="ვერ შესრულდა: "+errorText(e);}
-  finally{busy=false;render();}
-}
-
 $("login").onclick=async()=>{
   setMsg("");
   const email=$("email").value.trim(),password=$("password").value;
@@ -167,9 +154,18 @@ $("search").oninput=render;
 $("refresh").onclick=loadUsers;
 $("logout").onclick=()=>auth.signOut();
 
-$("users").addEventListener("click",e=>{
-  const b=e.target.closest("button[data-action]");
-  if(b)userAction(b.dataset.action,b.dataset.uid);
+$("users").addEventListener("click",async e=>{
+  const b=e.target.closest("button[data-view]");
+  if(!b)return;
+  $("status").textContent="მომხმარებლის მონაცემები იტვირთება...";
+  try{
+    const snap=await db.collection("users").doc(b.dataset.view).get();
+    if(!snap.exists){$("status").textContent="მომხმარებლის მონაცემები ვერ მოიძებნა.";return;}
+    const u=users.find(x=>x.uid===b.dataset.view)||{uid:b.dataset.view};
+    Object.assign(u,snap.data()||{});
+    showUserDetail(u);
+    $("status").textContent="მონაცემები მხოლოდ წაკითხვის რეჟიმშია.";
+  }catch(err){$("status").textContent="მონაცემების ჩატვირთვა ვერ მოხერხდა: "+errorText(err);}
 });
 auth.onAuthStateChanged(async user=>{
   $("adminBox").classList.add("hidden");
